@@ -17,6 +17,7 @@ export default function logIn()
 
   return (
     <>
+        <div className="flex items-center justify-center min-h-screen">
             <Card className="w-full max-w-sm">
                 <CardHeader>
                     <CardTitle>Login to your account</CardTitle>
@@ -63,6 +64,8 @@ export default function logIn()
                     </Button>
                 </CardFooter>
             </Card>
-        </>
+        </div>
+            
+    </>
     )
 }
