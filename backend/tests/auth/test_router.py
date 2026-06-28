@@ -75,18 +75,19 @@ def test_refresh_without_cookie_is_unauthorized(client) -> None:
 
 
 def test_google_auth_sets_access_and_refresh_cookies(client, monkeypatch) -> None:
+    async def fake_authorize_access_token(*_, **__) -> dict[str, str]:
+        return {"id_token": "google-id-token"}
+
     async def fake_google_auth_service(*_, **__) -> dict[str, str]:
         return {"access_token": "access-token", "refresh_token": "refresh-token"}
 
+    monkeypatch.setattr("auth.router.oauth.google.authorize_access_token", fake_authorize_access_token)
     monkeypatch.setattr("auth.router.google_auth_service", fake_google_auth_service)
 
-    response = client.post(
-        "/auth/google",
-        json={"id_token": "google-id-token"},
-    )
+    response = client.get("/auth/google/callback")
 
-    assert response.status_code == 200
-    assert response.json()["access_token"] == "access-token"
-    assert response.json()["refresh_token"] == "refresh-token"
+    # Callback should redirect to FRONTEND_URL or '/'
+    assert response.status_code in (302, 307)
+    # Cookies should be set on the redirect response
     assert "access_token=" in response.headers.get("set-cookie", "")
     assert "refresh_token=" in response.headers.get("set-cookie", "")

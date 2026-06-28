@@ -1,15 +1,29 @@
 from fastapi import APIRouter, Cookie, Depends, Response
 from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import Request
+from fastapi.responses import RedirectResponse
 
 from auth import google_auth as google_auth_service
 from auth import login as login_service
 from auth import refresh as refresh_service
 from auth import register_user
 from auth.utils import ACCESS_TOKEN_EXPIRES_MINUTES, REFRESH_TOKEN_EXPIRES_MINUTES
-from auth.schema import GoogleAuthRequest, LoginRequest, RegisterRequest, TokenResponse, UserResponse
+from auth.schema import LoginRequest, RegisterRequest, TokenResponse, UserResponse
 from config import env
 from exceptions import UnauthorizedException
 from db.connection import get_db
+
+from authlib.integrations.starlette_client import OAuth
+
+# Configure OAuth client for Google
+oauth = OAuth()
+oauth.register(
+    name="google",
+    client_id=env.GOOGLE_CLIENT_ID,
+    client_secret=env.GOOGLE_CLIENT_SECRET,
+    server_metadata_url="https://accounts.google.com/.well-known/openid-configuration",
+    client_kwargs={"scope": "openid email profile"},
+)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -71,15 +85,43 @@ async def login(
     return tokens
 
 
-@router.post("/google", response_model=TokenResponse)
-async def google_auth(
-    payload: GoogleAuthRequest,
+@router.get("/google/login")
+async def google_login(request: Request):
+    """Start the OAuth redirect flow to Google's authorization endpoint."""
+    # Build callback URL for this application
+    redirect_uri = str(request.url_for("google_callback"))
+    return await oauth.google.authorize_redirect(request, redirect_uri)
+
+
+@router.get("/google/callback")
+async def google_callback(
+    request: Request,
     response: Response,
     db: AsyncSession = Depends(get_db),
 ):
-    tokens = await google_auth_service(db=db, id_token=payload.id_token)
+    """Handle the OAuth callback from Google, create local tokens and set auth cookies,
+    then redirect the user to FRONTEND_URL (if configured) or '/'."""
+    token = await oauth.google.authorize_access_token(request)
+
+    # Prefer the id_token if present, fallback to using userinfo if necessary
+    id_token = token.get("id_token")
+    if id_token is None:
+        # Try to fetch userinfo from the userinfo endpoint
+        try:
+            user_resp = await oauth.google.get("userinfo", token=token)
+            userinfo = user_resp.json()
+            # Some services expect an id_token; craft a minimal id-like payload for service
+            # The service.google_auth expects an id_token string; if not present, call it with None
+            # so the existing logic will raise if verification is required. Prefer id_token when possible.
+            id_token = None
+        except Exception:
+            id_token = None
+
+    tokens = await google_auth_service(db=db, id_token=id_token)
     _set_auth_cookies(response, tokens["access_token"], tokens["refresh_token"])
-    return tokens
+
+    redirect_to = env.FRONTEND_URL or "/"
+    return RedirectResponse(url=redirect_to)
 
 
 @router.post("/refresh", response_model=TokenResponse)

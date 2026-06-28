@@ -10,5 +10,7 @@ class Config(BaseSettings):
     SALT: str
     JWT_SECRET: str
     GOOGLE_CLIENT_ID: str
+    GOOGLE_CLIENT_SECRET: str | None = None
+    FRONTEND_URL: str | None = None
 
 env = Config() #type: ignore

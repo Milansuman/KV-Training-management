@@ -1,14 +1,14 @@
 import asyncio
-from typing import Any, Mapping
+from typing import Any
 from uuid import uuid4
 from config import env
 
-from google.auth.exceptions import GoogleAuthError
-from google.auth.transport.requests import Request
-from google.oauth2 import id_token as google_id_token
+import requests
+from authlib.jose import jwt as authlib_jwt, JsonWebKey
 from jwt import ExpiredSignatureError, InvalidTokenError
 from sqlalchemy.exc import IntegrityError, NoResultFound, SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
+
 
 from auth import repository, utils
 from exceptions import (
@@ -31,11 +31,41 @@ def _build_token_claims(user: User) -> dict[str, Any]:
 
 
 def _verify_google_token(id_token: str) -> dict[str, Any]:
-    return dict(google_id_token.verify_oauth2_token(
-        id_token,
-        Request(),
-        env.GOOGLE_CLIENT_ID
-    ))
+    """Verify a Google ID token using Authlib and Google's JWKS.
+
+    Fetch Google's JWKS, import the key set, decode the token and
+    validate audience and issuer. Normalize verification errors to
+    UnauthorizedException for the service layer.
+    """
+    jwks_url = "https://www.googleapis.com/oauth2/v3/certs"
+    try:
+        resp = requests.get(jwks_url, timeout=5)
+        resp.raise_for_status()
+        jwks = resp.json()
+        jwk_set = JsonWebKey.import_key_set(jwks)
+
+        # Decode and validate standard claims (exp, nbf, iat)
+        claims = authlib_jwt.decode(id_token, jwk_set)
+        claims.validate()
+
+        # Validate audience
+        aud = claims.get("aud")
+        if isinstance(aud, (list, tuple)):
+            if env.GOOGLE_CLIENT_ID not in aud:
+                raise ValueError("Invalid audience")
+        else:
+            if aud != env.GOOGLE_CLIENT_ID:
+                raise ValueError("Invalid audience")
+
+        # Validate issuer
+        iss = claims.get("iss")
+        if iss not in ("https://accounts.google.com", "accounts.google.com"):
+            raise ValueError("Invalid issuer")
+
+        return dict(claims)
+    except Exception as exc:
+        # Map any verification error to the UnauthorizedException expected by callers
+        raise UnauthorizedException("Invalid Google token") from exc
 
 
 async def verify_google_id_token(id_token: str) -> dict[str, Any]:
@@ -43,8 +73,6 @@ async def verify_google_id_token(id_token: str) -> dict[str, Any]:
         payload = await asyncio.to_thread(_verify_google_token, id_token)
     except ValueError as exc:
         raise UnauthorizedException("Invalid Google token") from exc
-    except GoogleAuthError as exc:
-        raise UnauthorizedException("Unable to verify Google token") from exc
 
     return payload
 
