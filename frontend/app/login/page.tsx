@@ -16,6 +16,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useLoginMutation } from "@/lib/api/auth/auth.api";
+import { toast } from "sonner"
 
 const loginSchema = z.object({
   username_or_email: z.string().min(1, "Email or username is required"),
@@ -39,8 +40,7 @@ export default function LogInPage() {
       await login(data).unwrap();
       router.push("/");
     } catch (e) {
-      console.error(e);
-      // TODO: show user-friendly error
+      toast.error("Oops! Unable to login")
     }
   };
 

@@ -16,6 +16,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useRegisterMutation } from "@/lib/api/auth/auth.api";
+import { toast } from "sonner"
 
 const registerSchema = z
   .object({
@@ -52,8 +53,7 @@ export default function RegisterPage() {
       }).unwrap();
       router.push("/login");
     } catch (e) {
-      // TODO: show toast/error handling
-      console.error(e);
+      toast.error("Failed to create an account");
     }
   };
 
@@ -113,7 +113,7 @@ export default function RegisterPage() {
                   <Input
                     id="password"
                     type="password"
-                    {...formRegister("password")} 
+                    {...formRegister("password")}
                   />
                   {errors.password && (
                     <p className="text-sm text-red-600">{errors.password.message}</p>

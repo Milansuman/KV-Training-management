@@ -108,3 +108,26 @@ async def link_google_sub(
     user.google_sub = google_sub
     await db.commit()
     return user
+
+
+async def set_nonce(
+    db: AsyncSession,
+    user: User,
+    nonce: str | None
+) -> User:
+    user.nonce = nonce
+    await db.commit()
+    return user
+
+
+async def get_user_by_nonce(
+    db: AsyncSession,
+    nonce: str
+) -> User:
+    user = (await db.scalars(
+        select(User)
+        .where(User.nonce == nonce)
+        .where(User.deleted_at.is_(None))
+    )).one()
+
+    return user

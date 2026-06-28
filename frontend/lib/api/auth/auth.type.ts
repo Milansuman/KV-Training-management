@@ -10,8 +10,8 @@ export type LoginRequest = {
   password: string
 }
 
-export type GoogleAuthRequest = {
-  code: string
+export type GoogleHandshakeRequest = {
+  nonce: string
 }
 
 export type UserResponse = {

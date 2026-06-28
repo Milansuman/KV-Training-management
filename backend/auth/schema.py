@@ -17,6 +17,10 @@ class GoogleAuthRequest(BaseModel):
     id_token: str
 
 
+class GoogleHandshakeRequest(BaseModel):
+    nonce: str
+
+
 class RefreshRequest(BaseModel):
     refresh_token: str
 

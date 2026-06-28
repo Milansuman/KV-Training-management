@@ -1,6 +1,6 @@
 import { baseSlice } from "../base"
 import {
-  GoogleAuthRequest,
+  GoogleHandshakeRequest,
   LoginRequest,
   RegisterRequest,
   TokenResponse,
@@ -29,6 +29,13 @@ export const authApi = baseSlice.injectEndpoints({
         method: "POST",
       }),
     }),
+    googleHandshake: builder.mutation<TokenResponse, GoogleHandshakeRequest>({
+      query: (body) => ({
+        url: "/auth/google/handshake",
+        method: "POST",
+        body,
+      }),
+    }),
   }),
   overrideExisting: false,
 })
@@ -37,4 +44,5 @@ export const {
   useRegisterMutation,
   useLoginMutation,
   useRefreshMutation,
+  useGoogleHandshakeMutation,
 } = authApi

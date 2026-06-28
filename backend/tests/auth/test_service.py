@@ -138,12 +138,14 @@ async def test_google_auth_creates_user_without_password(db_session, monkeypatch
 
     monkeypatch.setattr(service, "verify_google_id_token", fake_verify_google_id_token)
 
-    tokens = await service.google_auth(db=db_session, id_token="google-token")
+    nonce = await service.google_auth(db=db_session, id_token="google-token")
     user = await service.repository.get_user_by_email(db=db_session, email="google@example.com")
 
-    assert set(tokens) == {"access_token", "refresh_token"}
+    assert isinstance(nonce, str) and len(nonce) > 0
     assert user.google_sub == "google-sub-1"
     assert user.password is None
+    # Nonce should be persisted on the user row.
+    assert user.nonce == nonce
 
 
 @pytest.mark.asyncio
@@ -185,3 +187,53 @@ async def test_google_auth_rejects_unverified_email(db_session, monkeypatch) -> 
 
     with pytest.raises(UnauthorizedException):
         await service.google_auth(db=db_session, id_token="google-token")
+
+
+@pytest.mark.asyncio
+async def test_google_handshake_returns_token_pair_and_clears_nonce(db_session, monkeypatch) -> None:
+    """A valid nonce should yield a token pair and be cleared from the user row."""
+    async def fake_verify_google_id_token(id_token: str) -> dict[str, str | bool]:
+        return {
+            "sub": "google-sub-4",
+            "email": "handshake@example.com",
+            "name": "Handshake User",
+            "email_verified": True,
+        }
+
+    monkeypatch.setattr(service, "verify_google_id_token", fake_verify_google_id_token)
+
+    nonce = await service.google_auth(db=db_session, id_token="google-token")
+    tokens = await service.google_handshake(db=db_session, nonce=nonce)
+
+    user = await service.repository.get_user_by_email(db=db_session, email="handshake@example.com")
+
+    assert set(tokens) == {"access_token", "refresh_token"}
+    # Nonce must be cleared after consumption.
+    assert user.nonce is None
+
+
+@pytest.mark.asyncio
+async def test_google_handshake_rejects_invalid_nonce(db_session) -> None:
+    """An invalid nonce must raise UnauthorizedException."""
+    with pytest.raises(UnauthorizedException):
+        await service.google_handshake(db=db_session, nonce="this-nonce-does-not-exist")
+
+
+@pytest.mark.asyncio
+async def test_google_handshake_nonce_is_single_use(db_session, monkeypatch) -> None:
+    """The same nonce must not be accepted a second time."""
+    async def fake_verify_google_id_token(id_token: str) -> dict[str, str | bool]:
+        return {
+            "sub": "google-sub-5",
+            "email": "singleuse@example.com",
+            "name": "Single Use",
+            "email_verified": True,
+        }
+
+    monkeypatch.setattr(service, "verify_google_id_token", fake_verify_google_id_token)
+
+    nonce = await service.google_auth(db=db_session, id_token="google-token")
+    await service.google_handshake(db=db_session, nonce=nonce)
+
+    with pytest.raises(UnauthorizedException):
+        await service.google_handshake(db=db_session, nonce=nonce)

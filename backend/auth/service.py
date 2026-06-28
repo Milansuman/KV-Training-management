@@ -1,4 +1,5 @@
 import asyncio
+import secrets
 from typing import Any
 from uuid import uuid4
 from config import env
@@ -166,7 +167,10 @@ async def refresh(
 async def google_auth(
     db: AsyncSession,
     id_token: str
-) -> dict[str, str]:
+) -> str:
+    """Verify the Google ID token, upsert the local user, stamp a one-time
+    nonce onto the user row, and return that nonce.  The nonce is consumed
+    by `google_handshake` to issue the actual JWT token pair."""
     payload = await verify_google_id_token(id_token=id_token)
     email = payload.get("email")
     display_name = payload.get("name")
@@ -210,6 +214,27 @@ async def google_auth(
     except SQLAlchemyError as exc:
         await db.rollback()
         raise BadRequestException("Unable to login with Google") from exc
+
+    nonce = secrets.token_urlsafe(32)
+    await repository.set_nonce(db=db, user=user, nonce=nonce)
+    return nonce
+
+
+async def google_handshake(
+    db: AsyncSession,
+    nonce: str
+) -> dict[str, str]:
+    """Validate the one-time nonce produced by `google_auth`, clear it from
+    the user row (so it cannot be reused), and return a fresh JWT token pair."""
+    try:
+        user = await repository.get_user_by_nonce(db=db, nonce=nonce)
+    except NoResultFound as exc:
+        raise UnauthorizedException("Invalid or expired handshake nonce") from exc
+    except SQLAlchemyError as exc:
+        raise BadRequestException("Unable to complete Google handshake") from exc
+
+    # Clear the nonce immediately — it is single-use.
+    await repository.set_nonce(db=db, user=user, nonce=None)
 
     return utils.create_token_pair(
         subject=str(user.id),

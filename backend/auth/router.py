@@ -4,11 +4,12 @@ from fastapi import Request
 from fastapi.responses import RedirectResponse
 
 from auth import google_auth as google_auth_service
+from auth import google_handshake as google_handshake_service
 from auth import login as login_service
 from auth import refresh as refresh_service
 from auth import register_user
 from auth.utils import ACCESS_TOKEN_EXPIRES_MINUTES, REFRESH_TOKEN_EXPIRES_MINUTES
-from auth.schema import LoginRequest, RegisterRequest, TokenResponse, UserResponse
+from auth.schema import GoogleHandshakeRequest, LoginRequest, RegisterRequest, TokenResponse, UserResponse
 from config import env
 from exceptions import UnauthorizedException
 from db.connection import get_db
@@ -96,32 +97,34 @@ async def google_login(request: Request):
 @router.get("/google/callback")
 async def google_callback(
     request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    """Handle the OAuth callback from Google, generate a one-time nonce for the
+    user, and redirect the browser to the frontend verification page with that
+    nonce as a query parameter.  The frontend then POSTs the nonce to
+    /auth/google/handshake to receive the real auth cookies."""
+    token = await oauth.google.authorize_access_token(request)
+
+    id_token = token.get("id_token")
+
+    nonce = await google_auth_service(db=db, id_token=id_token)
+
+    redirect_to = f"{env.FRONTEND_URL}/verify/google?nonce={nonce}"
+    return RedirectResponse(url=redirect_to)
+
+
+@router.post("/google/handshake", response_model=TokenResponse)
+async def google_handshake(
+    payload: GoogleHandshakeRequest,
     response: Response,
     db: AsyncSession = Depends(get_db),
 ):
-    """Handle the OAuth callback from Google, create local tokens and set auth cookies,
-    then redirect the user to FRONTEND_URL (if configured) or '/'."""
-    token = await oauth.google.authorize_access_token(request)
-
-    # Prefer the id_token if present, fallback to using userinfo if necessary
-    id_token = token.get("id_token")
-    if id_token is None:
-        # Try to fetch userinfo from the userinfo endpoint
-        try:
-            user_resp = await oauth.google.get("userinfo", token=token)
-            userinfo = user_resp.json()
-            # Some services expect an id_token; craft a minimal id-like payload for service
-            # The service.google_auth expects an id_token string; if not present, call it with None
-            # so the existing logic will raise if verification is required. Prefer id_token when possible.
-            id_token = None
-        except Exception:
-            id_token = None
-
-    tokens = await google_auth_service(db=db, id_token=id_token)
+    """Complete the Google OAuth handshake.  The frontend submits the one-time
+    nonce it received via the redirect URL.  If valid, auth cookies are set and
+    the token pair is returned; the nonce is immediately invalidated."""
+    tokens = await google_handshake_service(db=db, nonce=payload.nonce)
     _set_auth_cookies(response, tokens["access_token"], tokens["refresh_token"])
-
-    redirect_to = env.FRONTEND_URL or "/"
-    return RedirectResponse(url=redirect_to)
+    return tokens
 
 
 @router.post("/refresh", response_model=TokenResponse)

@@ -24,6 +24,10 @@ class User(Entity):
         Text,
         unique=True
     )
+    nonce: Mapped[str | None] = mapped_column(
+        Text,
+        default=None
+    )
     is_admin: Mapped[bool] = mapped_column(
         Boolean,
         default=False
