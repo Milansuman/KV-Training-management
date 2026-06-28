@@ -17,6 +17,9 @@ class User(Entity):
         Text,
         unique=True
     )
+    password: Mapped[str] = mapped_column(
+        Text
+    )
     is_admin: Mapped[bool] = mapped_column(
         Boolean,
         default=False

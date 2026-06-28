@@ -1,7 +1,11 @@
 import pytest_asyncio
+import pytest
+from fastapi.testclient import TestClient
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 from sqlalchemy import StaticPool
 from db.connection import Base
+from db.connection import get_db
+from main import app
 
 
 @pytest_asyncio.fixture
@@ -25,3 +29,14 @@ async def db_session():
         await conn.run_sync(Base.metadata.drop_all)
 
     await engine.dispose()
+
+
+@pytest.fixture
+def client(db_session):
+    async def override_get_db():
+        yield db_session
+
+    app.dependency_overrides[get_db] = override_get_db
+    with TestClient(app) as test_client:
+        yield test_client
+    app.dependency_overrides.clear()

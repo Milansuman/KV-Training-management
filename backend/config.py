@@ -7,5 +7,7 @@ class Config(BaseSettings):
 
     DATABASE_URL: str
     ENV: str
+    SALT: str
+    JWT_SECRET: str
 
 env = Config() #type: ignore
