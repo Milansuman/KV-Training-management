@@ -1,5 +1,6 @@
 'use client'
 
+import AuthBackground from "@/components/ui/authBackground"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -26,11 +27,11 @@ export default function logIn()
 
   return (
     <>
-        <div className="flex items-center justify-center min-h-screen">
-            <Card className="w-full max-w-sm">
+        <AuthBackground>
+            <Card className="min-w-sm max-w-md bg-card/50 font-quicksand ">
                 {/* CARD HEADER */}
-                <CardHeader >
-                    <CardTitle>Login to your account</CardTitle>
+                <CardHeader className="text-center " >
+                    <CardTitle className="text-3xl font-quicksand ">Login</CardTitle>
                     <CardDescription>
                         Enter your email below to login to your account
                     </CardDescription>
@@ -38,8 +39,8 @@ export default function logIn()
                 {/* CARD CONTENT */}
                 <CardContent>
                     <form>
-                        <div className="flex flex-col gap-6">
-                            <div className="grid gap-2">
+                        <div className="flex flex-col gap-6 ">
+                            <div className="grid gap-2 ">
                                 <Label htmlFor="email">Email</Label>
                                 <Input
                                     id="email"
@@ -64,8 +65,8 @@ export default function logIn()
                     </form>
                 </CardContent>
                 {/* CARD FOOTER */}
-                <CardFooter className="flex-col gap-2">
-                    <Button type="submit" className="w-full">
+                <CardFooter className="flex-col gap-2 ">
+                    <Button type="submit" className="w-full font-semibold">
                         Login
                     </Button>
                     <Button variant="outline" className="w-full">
@@ -80,8 +81,7 @@ export default function logIn()
                         <Button variant="ghost" type="submit" className="w-full" onClick={handleSubmit}>Sign Up</Button>
                 </CardFooter>
             </Card>
-        </div>
-            
+        </AuthBackground>
     </>
     )
 }
