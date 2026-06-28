@@ -72,3 +72,21 @@ def test_refresh_without_cookie_is_unauthorized(client) -> None:
 
     assert response.status_code == 401
     assert response.json()["detail"] == "Refresh token cookie is required"
+
+
+def test_google_auth_sets_access_and_refresh_cookies(client, monkeypatch) -> None:
+    async def fake_google_auth_service(*_, **__) -> dict[str, str]:
+        return {"access_token": "access-token", "refresh_token": "refresh-token"}
+
+    monkeypatch.setattr("auth.router.google_auth_service", fake_google_auth_service)
+
+    response = client.post(
+        "/auth/google",
+        json={"id_token": "google-id-token"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["access_token"] == "access-token"
+    assert response.json()["refresh_token"] == "refresh-token"
+    assert "access_token=" in response.headers.get("set-cookie", "")
+    assert "refresh_token=" in response.headers.get("set-cookie", "")

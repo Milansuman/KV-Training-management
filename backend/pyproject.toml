@@ -8,8 +8,10 @@ dependencies = [
     "alembic>=1.18.5",
     "asyncpg>=0.31.0",
     "fastapi[standard]>=0.138.1",
+    "google-auth>=2.55.1",
     "pydantic-settings>=2.14.2",
     "pyjwt>=2.13.0",
+    "requests>=2.34.2",
     "sqlalchemy>=2.0.51",
 ]
 

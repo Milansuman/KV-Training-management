@@ -9,7 +9,8 @@ async def create_user(
     username: str,
     display_name: str,
     email: str,
-    password: str,
+    password: str | None = None,
+    google_sub: str | None = None,
     is_admin: bool = False
 ) -> User:
     user = User(
@@ -17,6 +18,7 @@ async def create_user(
         display_name=display_name,
         email=email,
         password=password,
+        google_sub=google_sub,
         is_admin=is_admin
     )
 
@@ -69,4 +71,40 @@ async def get_user_by_id(
         )
     )).one()
 
+    return user
+
+
+async def get_user_by_email(
+    db: AsyncSession,
+    email: str
+) -> User:
+    user = (await db.scalars(
+        select(User)
+        .where(User.email == email)
+        .where(User.deleted_at.is_(None))
+    )).one()
+
+    return user
+
+
+async def get_user_by_google_sub(
+    db: AsyncSession,
+    google_sub: str
+) -> User:
+    user = (await db.scalars(
+        select(User)
+        .where(User.google_sub == google_sub)
+        .where(User.deleted_at.is_(None))
+    )).one()
+
+    return user
+
+
+async def link_google_sub(
+    db: AsyncSession,
+    user: User,
+    google_sub: str
+) -> User:
+    user.google_sub = google_sub
+    await db.commit()
     return user

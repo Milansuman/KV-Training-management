@@ -9,5 +9,6 @@ class Config(BaseSettings):
     ENV: str
     SALT: str
     JWT_SECRET: str
+    GOOGLE_CLIENT_ID: str
 
 env = Config() #type: ignore

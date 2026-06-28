@@ -1,10 +1,12 @@
 from fastapi import APIRouter, Cookie, Depends, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from auth import google_auth as google_auth_service
 from auth import login as login_service
 from auth import refresh as refresh_service
 from auth import register_user
-from auth.schema import LoginRequest, RegisterRequest, TokenResponse, UserResponse
+from auth.utils import ACCESS_TOKEN_EXPIRES_MINUTES, REFRESH_TOKEN_EXPIRES_MINUTES
+from auth.schema import GoogleAuthRequest, LoginRequest, RegisterRequest, TokenResponse, UserResponse
 from config import env
 from exceptions import UnauthorizedException
 from db.connection import get_db
@@ -14,8 +16,8 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 ACCESS_COOKIE_NAME = "access_token"
 REFRESH_COOKIE_NAME = "refresh_token"
 COOKIE_PATH = "/"
-ACCESS_MAX_AGE = 15 * 60
-REFRESH_MAX_AGE = 7 * 24 * 60 * 60
+ACCESS_MAX_AGE = ACCESS_TOKEN_EXPIRES_MINUTES * 60
+REFRESH_MAX_AGE = REFRESH_TOKEN_EXPIRES_MINUTES * 60
 
 
 def _set_auth_cookies(response: Response, access_token: str, refresh_token: str) -> None:
@@ -65,6 +67,17 @@ async def login(
         username_or_email=payload.username_or_email,
         password=payload.password,
     )
+    _set_auth_cookies(response, tokens["access_token"], tokens["refresh_token"])
+    return tokens
+
+
+@router.post("/google", response_model=TokenResponse)
+async def google_auth(
+    payload: GoogleAuthRequest,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+):
+    tokens = await google_auth_service(db=db, id_token=payload.id_token)
     _set_auth_cookies(response, tokens["access_token"], tokens["refresh_token"])
     return tokens
 

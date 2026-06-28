@@ -124,3 +124,64 @@ async def test_refresh_rejects_token_for_missing_user(db_session) -> None:
 
     with pytest.raises(NotFoundException):
         await service.refresh(db=db_session, refresh_token=token_pair["refresh_token"])
+
+
+@pytest.mark.asyncio
+async def test_google_auth_creates_user_without_password(db_session, monkeypatch) -> None:
+    async def fake_verify_google_id_token(id_token: str) -> dict[str, str | bool]:
+        return {
+            "sub": "google-sub-1",
+            "email": "google@example.com",
+            "name": "Google User",
+            "email_verified": True,
+        }
+
+    monkeypatch.setattr(service, "verify_google_id_token", fake_verify_google_id_token)
+
+    tokens = await service.google_auth(db=db_session, id_token="google-token")
+    user = await service.repository.get_user_by_email(db=db_session, email="google@example.com")
+
+    assert set(tokens) == {"access_token", "refresh_token"}
+    assert user.google_sub == "google-sub-1"
+    assert user.password is None
+
+
+@pytest.mark.asyncio
+async def test_google_auth_links_existing_email_user(db_session, monkeypatch) -> None:
+    await service.register_user(
+        db=db_session,
+        username="admin",
+        email="admin@example.com",
+        display_name="Admin User",
+        password="secret",
+    )
+
+    async def fake_verify_google_id_token(id_token: str) -> dict[str, str | bool]:
+        return {
+            "sub": "google-sub-2",
+            "email": "admin@example.com",
+            "name": "Admin User",
+            "email_verified": True,
+        }
+
+    monkeypatch.setattr(service, "verify_google_id_token", fake_verify_google_id_token)
+    await service.google_auth(db=db_session, id_token="google-token")
+
+    user = await service.repository.get_user_by_email(db=db_session, email="admin@example.com")
+    assert user.google_sub == "google-sub-2"
+
+
+@pytest.mark.asyncio
+async def test_google_auth_rejects_unverified_email(db_session, monkeypatch) -> None:
+    async def fake_verify_google_id_token(id_token: str) -> dict[str, str | bool]:
+        return {
+            "sub": "google-sub-3",
+            "email": "google@example.com",
+            "name": "Google User",
+            "email_verified": False,
+        }
+
+    monkeypatch.setattr(service, "verify_google_id_token", fake_verify_google_id_token)
+
+    with pytest.raises(UnauthorizedException):
+        await service.google_auth(db=db_session, id_token="google-token")

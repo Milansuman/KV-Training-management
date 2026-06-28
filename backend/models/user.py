@@ -17,8 +17,12 @@ class User(Entity):
         Text,
         unique=True
     )
-    password: Mapped[str] = mapped_column(
+    password: Mapped[str | None] = mapped_column(
         Text
+    )
+    google_sub: Mapped[str | None] = mapped_column(
+        Text,
+        unique=True
     )
     is_admin: Mapped[bool] = mapped_column(
         Boolean,
