@@ -1,8 +1,7 @@
-'use client'
-
 import { Button } from "@/components/ui/button"
 import {
   Card,
+  CardAction,
   CardContent,
   CardDescription,
   CardFooter,
@@ -12,33 +11,43 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import Image from "next/image"
-import { useRouter } from "next/navigation"
 
 
-export default function logIn()
+
+export default function register()
 {
-    const router=useRouter()
-
-    function handleSubmit()
-    {
-        router.push("/register")
-    }
 
   return (
     <>
         <div className="flex items-center justify-center min-h-screen">
             <Card className="w-full max-w-sm">
-                {/* CARD HEADER */}
-                <CardHeader >
-                    <CardTitle>Login to your account</CardTitle>
+                <CardHeader>
+                    <CardTitle>Create an account</CardTitle>
                     <CardDescription>
-                        Enter your email below to login to your account
+                        Enter the following details to create an account
                     </CardDescription>
                 </CardHeader>
-                {/* CARD CONTENT */}
                 <CardContent>
                     <form>
                         <div className="flex flex-col gap-6">
+                            <div className="grid gap-2">
+                                <Label htmlFor="username">Username</Label>
+                                <Input
+                                    id="username"
+                                    type="text"
+                                    placeholder="@m_s"
+                                    required
+                                />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="email">Display Name</Label>
+                                <Input
+                                    id="display_name"
+                                    type="text"
+                                    placeholder="Firstname Lastname"
+                                    required
+                                />
+                            </div>
                             <div className="grid gap-2">
                                 <Label htmlFor="email">Email</Label>
                                 <Input
@@ -53,20 +62,19 @@ export default function logIn()
                                 <Label htmlFor="password">Password</Label>
                                 <a
                                 href="#"
-                                className="hidden ml-auto text-sm underline-offset-4 hover:underline"
+                                className="hidden ml-autotext-sm underline-offset-4 hover:underline"
                                 >
                                 Forgot your password?
                                 </a>
                             </div>
-                                <Input id="password" type="password" required />
+                            <Input id="password" type="password" required />
                             </div>
                         </div>
                     </form>
                 </CardContent>
-                {/* CARD FOOTER */}
                 <CardFooter className="flex-col gap-2">
                     <Button type="submit" className="w-full">
-                        Login
+                        Sign Up
                     </Button>
                     <Button variant="outline" className="w-full">
                         <Image
@@ -75,9 +83,8 @@ export default function logIn()
                             width={16}
                             height={16}
                             />
-                        Login with Google
+                        Sign Up with Google
                     </Button>
-                        <Button variant="ghost" type="submit" className="w-full" onClick={handleSubmit}>Sign Up</Button>
                 </CardFooter>
             </Card>
         </div>
