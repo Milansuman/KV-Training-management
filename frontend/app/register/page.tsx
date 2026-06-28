@@ -1,3 +1,4 @@
+import AuthBackground from "@/components/ui/authBackground"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -19,10 +20,10 @@ export default function register()
 
   return (
     <>
-        <div className="flex items-center justify-center min-h-screen">
-            <Card className="w-full max-w-sm">
-                <CardHeader>
-                    <CardTitle>Create an account</CardTitle>
+        <AuthBackground>
+            <Card className="min-w-sm max-w-md bg-card/50 font-quicksand">
+                <CardHeader className="text-center ">
+                    <CardTitle className="text-3xl font-quicksand">Create an account</CardTitle>
                     <CardDescription>
                         Enter the following details to create an account
                     </CardDescription>
@@ -73,7 +74,7 @@ export default function register()
                     </form>
                 </CardContent>
                 <CardFooter className="flex-col gap-2">
-                    <Button type="submit" className="w-full">
+                    <Button type="submit" className="w-full font-semibold ">
                         Sign Up
                     </Button>
                     <Button variant="outline" className="w-full">
@@ -87,8 +88,7 @@ export default function register()
                     </Button>
                 </CardFooter>
             </Card>
-        </div>
-            
+    </AuthBackground>
     </>
     )
 }
