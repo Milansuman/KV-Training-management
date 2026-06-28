@@ -1,0 +1,13 @@
+#!/bin/sh
+
+commit_msg_file=$1
+commit_msg=$(cat "$commit_msg_file")
+
+pattern="^(feat|fix|docs|test|refactor|build|perf|format): .*$"
+
+if ! echo "$commit_msg" | grep -Eq "$pattern"; then
+  echo "❌ Invalid commit message"
+  echo "Use: <type>: <message>"
+  echo "Example: feat: add login page"
+  exit 1
+fi
