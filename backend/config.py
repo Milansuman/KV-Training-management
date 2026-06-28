@@ -6,5 +6,6 @@ class Config(BaseSettings):
     )
 
     DATABASE_URL: str
+    ENV: str
 
 env = Config() #type: ignore
