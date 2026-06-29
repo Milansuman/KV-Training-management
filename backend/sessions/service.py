@@ -1,6 +1,7 @@
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from exceptions.exceptions import UnprocessableEntityException
 from exceptions import NotFoundException
 
 from models.session import Session
@@ -17,6 +18,10 @@ async def create_session(
     end_datetime,
     program_id: int
 ):
+    if end_datetime <= start_datetime:
+        raise UnprocessableEntityException(
+            "end_datetime must be after start_datetime"
+        )
 
     # try:
     #     await program_repository.get_program_by_id(
@@ -80,6 +85,10 @@ async def update_session(
     start_datetime,
     end_datetime
 ):
+    if end_datetime <= start_datetime:
+        raise UnprocessableEntityException(
+            "end_datetime must be after start_datetime"
+        )
 
     try:
         session = await repository.get_session_by_id(
