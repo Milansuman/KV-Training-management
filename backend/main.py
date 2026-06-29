@@ -9,6 +9,7 @@ from sessions.router import router as session_router
 from exceptions.handler import register_exception_handlers
 from user.router import router as user_router
 from config import env
+from programs.router import router as programs_router
 
 app = FastAPI()
 
@@ -30,6 +31,7 @@ app.include_router(auth_router)
 app.include_router(user_router)
 app.include_router(topic_router)
 app.include_router(session_router)
+app.include_router(programs_router)
 
 def main():
     uvicorn.run(
