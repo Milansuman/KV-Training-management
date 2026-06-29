@@ -42,6 +42,13 @@ export default function Dashboard() {
   ];
 
   const program_count = program_details.length;
+  const user_details = {
+    id: 12,
+    username: "aswini1212",
+    display_name: "Aswini P",
+    email: "aswinipriya2004@gmail.com",
+    is_admin: true,
+  };
 
   function handleClickProgram() {
     router.push(`dashboard/program/{id}`);
@@ -103,15 +110,18 @@ export default function Dashboard() {
           <p className="font-quicksand text-2xl font-semibold text-foreground sm:text-3xl">
             Programs
           </p>
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="mr-2 h-4 w-4" />
-                Add
-              </Button>
-            </DialogTrigger>
 
-            <DialogContent className="sm:max-w-lg">
+          {/* CONDITIONAL RENDERING OF THE ADD PROGRAM BUTTON */}
+          {user_details.is_admin && (
+            <Dialog>
+              <DialogTrigger>
+                <div className="bg-primary font-quicksand flex flex-row items-center rounded-md mg-4 p-1 ">
+                    <Plus className="mr-2 h-4 w-4" />
+                     Add
+                </div>
+              </DialogTrigger>
+
+              <DialogContent className="sm:max-w-lg">
               <DialogHeader>
                 <DialogTitle>Add Program</DialogTitle>
 
@@ -155,7 +165,8 @@ export default function Dashboard() {
                 <Button>Create Program</Button>
               </DialogFooter>
             </DialogContent>
-          </Dialog>
+            </Dialog>
+          )}
         </div>
 
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
