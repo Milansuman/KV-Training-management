@@ -62,3 +62,16 @@ async def patch_user(
     )
 
     return user
+
+
+async def delete_user(
+    id: int,
+    db: AsyncSession
+):
+
+    user = await user_repo.delete_user(
+        id,
+        db
+    )
+
+    return user

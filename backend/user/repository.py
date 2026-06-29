@@ -1,3 +1,5 @@
+from datetime import UTC, datetime
+
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -107,4 +109,27 @@ async def patch_user(
 
     await db.refresh(db_user)
 
+    return db_user
+
+
+async def delete_user(
+    id: int,
+    db: AsyncSession
+):
+    stmt = (
+        select(User)
+        .where(User.deleted_at.is_(None))
+        .where(User.id == id)
+    )
+
+    result = await db.scalars(stmt)
+    db_user = result.first()
+    if not db_user:
+        raise NotFoundException(
+            detail="User not found"
+        )
+
+    db_user.deleted_at = datetime.now(tz=UTC)
+    await db.commit()
+    await db.refresh(db_user)
     return db_user

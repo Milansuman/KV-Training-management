@@ -1,5 +1,13 @@
 from pydantic import BaseModel, ConfigDict, EmailStr
 
+class TokenPayload(BaseModel):
+    sub: str
+    type: str
+    username: str
+    email: str
+    display_name: str
+    is_admin: bool
+
 
 class RegisterRequest(BaseModel):
     username: str

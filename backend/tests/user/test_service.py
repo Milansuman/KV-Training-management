@@ -94,6 +94,21 @@ async def test_create_user_duplicate_email_raises_conflict(db_session) -> None:
 
 
 @pytest.mark.asyncio
-async def test_get_user_by_id_not_found_raises_not_found(db_session) -> None:
+async def test_delete_user_soft_deletes_user(db_session) -> None:
+    user = await user_service.create_user(
+        db_session,
+        UserCreate(
+            username="admin",
+            display_name="Admin User",
+            email="admin@example.com",
+            password="secret",
+            is_admin=False,
+        ),
+    )
+
+    deleted = await user_service.delete_user(user.id, db_session)
+
+    assert deleted.deleted_at is not None
+
     with pytest.raises(NotFoundException):
-        await user_service.get_user_by_id(9999, db_session)
+        await user_service.get_user_by_id(user.id, db_session)
