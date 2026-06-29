@@ -30,10 +30,10 @@ class Session(Entity):
         Text
     )
     start_datetime: Mapped[datetime] = mapped_column(
-        DateTime
+        DateTime(timezone=True)
     )
     end_datetime: Mapped[datetime] = mapped_column(
-        DateTime
+        DateTime(timezone=True)
     )
     program_id: Mapped[int] = mapped_column(
         ForeignKey("program.id", ondelete="CASCADE")
