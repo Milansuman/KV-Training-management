@@ -39,4 +39,7 @@ class Session(Entity):
         ForeignKey("program.id", ondelete="CASCADE")
     )
     program: Mapped["Program"] = relationship(back_populates="sessions")
-    topics: Mapped[list["Topic"]] = relationship(secondary="session_topic")
+    topics: Mapped[list["Topic"]] = relationship(
+    secondary=session_topic,
+    back_populates="sessions"
+)
