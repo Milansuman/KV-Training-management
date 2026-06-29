@@ -9,7 +9,6 @@ class UserCreate(BaseModel):
     is_admin: bool
 
 
-
 class UserUpdate(BaseModel):
     username: str | None = None
     display_name: str | None = None

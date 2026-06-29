@@ -1,7 +1,7 @@
 from pydantic import BaseModel, ConfigDict, EmailStr
 
 class TokenPayload(BaseModel):
-    sub: str
+    sub: str #corresponds to sub in access_token. sub is user id
     type: str
     username: str
     email: str

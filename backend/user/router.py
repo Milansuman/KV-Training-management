@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from auth.dependencies import get_current_user
 from auth.schema import TokenPayload
 from db.connection import get_db
+from exceptions.exceptions import UnauthorizedException
 from user import service as user_service
 
 from .schema import (
@@ -12,13 +13,10 @@ from .schema import (
     UserResponse
 )
 
-
 router = APIRouter(
     prefix="/user",
     tags=["Users"]
 )
-
-
 
 @router.post(
     "",
@@ -30,6 +28,8 @@ async def create_user(
     db: AsyncSession = Depends(get_db),
     current_user: TokenPayload = Depends(get_current_user),
 ):
+    if not current_user.is_admin:
+        raise UnauthorizedException("Action not allowed")
 
     user = await user_service.create_user(
         db,
@@ -45,8 +45,7 @@ async def create_user(
     response_model=list[UserResponse]
 )
 async def get_all_users(
-    db: AsyncSession = Depends(get_db),
-    current_user: TokenPayload = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
 ):
 
     users = await user_service.get_all_users(
@@ -63,8 +62,7 @@ async def get_all_users(
 )
 async def get_user_by_id(
     id: int,
-    db: AsyncSession = Depends(get_db),
-    current_user: TokenPayload = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
 ):
 
     user = await user_service.get_user_by_id(
@@ -86,6 +84,8 @@ async def patch_user(
     db: AsyncSession = Depends(get_db),
     current_user: TokenPayload = Depends(get_current_user),
 ):
+    if str(id) != current_user.sub and not current_user.is_admin:
+        raise UnauthorizedException("Action not allowed")
 
     user = await user_service.patch_user(
         id,
@@ -105,6 +105,8 @@ async def delete_user(
     db: AsyncSession = Depends(get_db),
     current_user: TokenPayload = Depends(get_current_user),
 ):
+    if str(id) != current_user.sub and not current_user.is_admin:
+        raise UnauthorizedException("Action not allowed")
 
     user = await user_service.delete_user(
         id,
