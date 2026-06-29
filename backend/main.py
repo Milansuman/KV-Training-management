@@ -2,8 +2,10 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 import uvicorn
-
+import models
 from auth.router import router as auth_router
+from topics.router import router as topic_router
+from sessions.router import router as session_router
 from exceptions.handler import register_exception_handlers
 from user.router import router as user_router
 from config import env
@@ -26,6 +28,8 @@ app.add_middleware(
 register_exception_handlers(app)
 app.include_router(auth_router)
 app.include_router(user_router)
+app.include_router(topic_router)
+app.include_router(session_router)
 
 def main():
     uvicorn.run(
