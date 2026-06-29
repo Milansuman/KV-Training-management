@@ -27,7 +27,7 @@ export default function GoogleVerifyPage() {
     googleHandshake({ nonce })
       .unwrap()
       .then(() => {
-        router.replace("/");
+        router.replace("/dashboard");
       })
       .catch(() => {
         toast.error("Google sign-in failed. Please try again.");

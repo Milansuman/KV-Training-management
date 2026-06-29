@@ -28,6 +28,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { EventContentArg } from "@fullcalendar/core/index.js";
+import {
+  useGetSessionsByProgramIdQuery,
+  useCreateSessionMutation,
+} from "@/lib/api/sessions/sessions.api";
+import { useGetMyselfQuery } from "@/lib/api/user/user.api";
+import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
 
 const formatDateTime = (date: Date | null) => {
   if (!date) return "";
@@ -51,7 +58,7 @@ function EventButton({ info }: { info: EventContentArg }) {
   return (
     <Popover>
       <PopoverTrigger className="w-full h-full">
-        <Button variant="outline" className="w-full h-full">
+        <Button variant="outline" className="w-full h-full text-left justify-start truncate">
           {info.event.title}
         </Button>
       </PopoverTrigger>
@@ -91,6 +98,7 @@ function EventButton({ info }: { info: EventContentArg }) {
 
 interface EventCalendarProps {
   className?: string;
+  programId: number;
 }
 
 const sessionSchema = z.object({
@@ -103,29 +111,26 @@ const sessionSchema = z.object({
 
 type SessionFormValues = z.infer<typeof sessionSchema>;
 
-export function EventCalendar({ className }: EventCalendarProps) {
-  const [events, setEvents] = React.useState([
-    {
-      id: "1",
-      title: "event 1",
-      start: "2026-06-29T09:00:00",
-      end: "2026-06-29T10:30:00",
+export function EventCalendar({ className, programId }: EventCalendarProps) {
+  const { data: user } = useGetMyselfQuery();
+  const { data: dbSessions = [], isLoading: sessionsLoading } =
+    useGetSessionsByProgramIdQuery(programId);
+
+  const [createSession, { isLoading: isCreating }] = useCreateSessionMutation();
+
+  const events = React.useMemo(() => {
+    return dbSessions.map((session) => ({
+      id: String(session.id),
+      title: session.title,
+      start: session.start_datetime,
+      end: session.end_datetime,
       extendedProps: {
-        description: "this is a description",
-        topics: ["backend", "frontend"],
+        description: session.description,
+        program_id: session.program_id,
+        topics: [], // backend does not store topics for sessions directly in create/update endpoint payload yet
       },
-    },
-    {
-      id: "2",
-      title: "event 2",
-      start: "2026-06-29T13:00:00",
-      end: "2026-06-29T14:30:00",
-      extendedProps: {
-        description: "this is another description",
-        topics: ["database", "design"],
-      },
-    },
-  ]);
+    }));
+  }, [dbSessions]);
 
   const [isOpen, setIsOpen] = React.useState(false);
 
@@ -141,6 +146,9 @@ export function EventCalendar({ className }: EventCalendarProps) {
   });
 
   const handleSelect = (selectInfo: any) => {
+    if (!user?.is_admin) {
+      return;
+    }
     const start = new Date(selectInfo.start);
     const end = new Date(selectInfo.end);
 
@@ -154,37 +162,39 @@ export function EventCalendar({ className }: EventCalendarProps) {
       description: "",
       start_datetime: toDatetimeLocalString(start),
       end_datetime: toDatetimeLocalString(end),
-      program_id: "1",
       topics: "",
     });
 
     setIsOpen(true);
   };
 
-  const onSubmit = (data: SessionFormValues) => {
-    const newEvent = {
-      id: String(Date.now()),
-      title: data.title,
-      start: data.start_datetime,
-      end: data.end_datetime,
-      extendedProps: {
+  const onSubmit = async (data: SessionFormValues) => {
+    try {
+      await createSession({
+        title: data.title,
         description: data.description,
-        topics: data.topics
-          ? data.topics
-              .split(",")
-              .map((t) => t.trim())
-              .filter(Boolean)
-          : [],
-        program_id: Number(data.program_id),
-      },
-    };
+        start_datetime: new Date(data.start_datetime).toISOString(),
+        end_datetime: new Date(data.end_datetime).toISOString(),
+        program_id: programId,
+      }).unwrap();
 
-    setEvents((prev) => [...prev, newEvent]);
-    setIsOpen(false);
+      toast.success("Session scheduled successfully!");
+      setIsOpen(false);
+    } catch (err: any) {
+      toast.error(err?.data?.detail || "Failed to schedule session");
+    }
   };
 
+  if (sessionsLoading) {
+    return (
+      <div className="flex h-full w-full items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
-    <div className={cn(className)}>
+    <div className={cn("h-full", className)}>
       <FullCalendar
         events={events}
         plugins={[dayGridPlugin, interactionPlugin, timeGridPlugin]}
@@ -193,13 +203,13 @@ export function EventCalendar({ className }: EventCalendarProps) {
         headerToolbar={{
           left: "prev,next",
           center: "title",
-          right: "dayGridMonth,timeGridWeek", // user can switch between the two
+          right: "dayGridMonth,timeGridWeek",
         }}
         height="100%"
         handleWindowResize
-        selectable={true}
-        editable={true}
-        selectMirror={true}
+        selectable={user?.is_admin || false}
+        editable={user?.is_admin || false}
+        selectMirror={user?.is_admin || false}
         select={handleSelect}
       />
 
@@ -253,17 +263,6 @@ export function EventCalendar({ className }: EventCalendarProps) {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="topics">Topics (comma separated)</Label>
-                <Input
-                  id="topics"
-                  placeholder="e.g., Python, SQL, Git"
-                  {...register("topics")}
-                />
-              </div>
-            </div>
-
             <div className="flex justify-end gap-2 mt-4">
               <Button
                 type="button"
@@ -272,7 +271,10 @@ export function EventCalendar({ className }: EventCalendarProps) {
               >
                 Cancel
               </Button>
-              <Button type="submit">Create Session</Button>
+              <Button type="submit" disabled={isCreating}>
+                {isCreating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Create Session
+              </Button>
             </div>
           </form>
         </DialogContent>

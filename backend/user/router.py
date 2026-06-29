@@ -18,6 +18,19 @@ router = APIRouter(
     tags=["Users"]
 )
 
+@router.get(
+    "/me",
+    response_model=UserResponse
+)
+async def get_current_user(
+    db: AsyncSession = Depends(get_db),
+    current_user: TokenPayload = Depends(get_current_user)
+):
+    return await user_service.get_user_by_id(
+        id=int(current_user.sub),
+        db=db
+    )
+
 @router.post(
     "",
     status_code=status.HTTP_201_CREATED,
@@ -37,8 +50,6 @@ async def create_user(
     )
 
     return user
-
-
 
 @router.get(
     "",

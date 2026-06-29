@@ -36,8 +36,7 @@ export const authApi = baseSlice.injectEndpoints({
         body,
       }),
     }),
-  }),
-  overrideExisting: false,
+  })
 })
 
 export const {
