@@ -101,6 +101,7 @@ async def register_user(
         raise ConflictException("User already exists") from exc
     except SQLAlchemyError as exc:
         await db.rollback()
+        print(exc)
         raise BadRequestException("Unable to register user") from exc
 
 

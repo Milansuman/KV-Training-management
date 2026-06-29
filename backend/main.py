@@ -6,6 +6,7 @@ import uvicorn
 from auth.router import router as auth_router
 from exceptions.handler import register_exception_handlers
 from config import env
+from programs.router import router as programs_router
 
 app = FastAPI()
 
@@ -24,6 +25,7 @@ app.add_middleware(
 
 register_exception_handlers(app)
 app.include_router(auth_router)
+app.include_router(programs_router)
 
 def main():
     uvicorn.run(

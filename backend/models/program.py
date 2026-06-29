@@ -8,6 +8,8 @@ from models.entity import Entity
 
 if TYPE_CHECKING:
     from models.session import Session
+else:
+    Session = "Session"
 
 class Program(Entity):
     __abstract__ = False
