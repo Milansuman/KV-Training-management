@@ -16,7 +16,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useLoginMutation } from "@/lib/api/auth/auth.api";
-import { toast } from "sonner"
+import { toast } from "sonner";
+import AuthBackground from "@/components/ui/authBackground";
 
 const loginSchema = z.object({
   username_or_email: z.string().min(1, "Email or username is required"),
@@ -33,21 +34,24 @@ export default function LogInPage() {
     register: formRegister,
     handleSubmit,
     formState: { errors },
-  } = useForm<LoginForm>({ mode: "onTouched", resolver: zodResolver(loginSchema) });
+  } = useForm<LoginForm>({
+    mode: "onTouched",
+    resolver: zodResolver(loginSchema),
+  });
 
   const onSubmit = async (data: LoginForm) => {
     try {
       await login(data).unwrap();
       router.push("/");
     } catch (e) {
-      toast.error("Oops! Unable to login")
+      toast.error("Oops! Unable to login");
     }
   };
 
   return (
     <>
-      <div className="flex items-center justify-center min-h-screen">
-        <Card className="w-full max-w-sm">
+      <AuthBackground>
+        <Card className="min-w-sm max-w-md bg-card/50 font-quicksand ">
           <CardHeader>
             <CardTitle>Login to your account</CardTitle>
           </CardHeader>
@@ -60,10 +64,14 @@ export default function LogInPage() {
                     id="email"
                     type="text"
                     placeholder="m@example.com or username"
-                    {...formRegister("username_or_email", { required: "Email or username is required" })}
+                    {...formRegister("username_or_email", {
+                      required: "Email or username is required",
+                    })}
                   />
                   {errors.username_or_email && (
-                    <p className="text-sm text-red-600">{errors.username_or_email.message}</p>
+                    <p className="text-sm text-red-600">
+                      {errors.username_or_email.message}
+                    </p>
                   )}
                 </div>
 
@@ -77,9 +85,17 @@ export default function LogInPage() {
                       Forgot your password?
                     </a>
                   </div>
-                  <Input id="password" type="password" {...formRegister("password", { required: "Password is required" })} />
+                  <Input
+                    id="password"
+                    type="password"
+                    {...formRegister("password", {
+                      required: "Password is required",
+                    })}
+                  />
                   {errors.password && (
-                    <p className="text-sm text-red-600">{errors.password.message}</p>
+                    <p className="text-sm text-red-600">
+                      {errors.password.message}
+                    </p>
                   )}
                 </div>
               </div>
@@ -91,21 +107,32 @@ export default function LogInPage() {
                   Login
                 </Button>
 
-                <a href={`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/google/login`}>
+                <a
+                  href={`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/google/login`}
+                >
                   <Button variant="outline" className="w-full">
-                    <Image src="/google__icon.png" alt="Google Icon" width={16} height={16} />
+                    <Image
+                      src="/google__icon.png"
+                      alt="Google Icon"
+                      width={16}
+                      height={16}
+                    />
                     Login with Google
                   </Button>
                 </a>
 
-                <Button variant="ghost" className="w-full" onClick={() => router.push("/register")}>
+                <Button
+                  variant="ghost"
+                  className="w-full"
+                  onClick={() => router.push("/register")}
+                >
                   Sign Up
                 </Button>
               </div>
             </form>
           </CardContent>
         </Card>
-      </div>
+      </AuthBackground>
     </>
   );
 }

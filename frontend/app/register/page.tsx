@@ -17,6 +17,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useRegisterMutation } from "@/lib/api/auth/auth.api";
 import { toast } from "sonner"
+import AuthBackground from "@/components/ui/authBackground";
 
 const registerSchema = z
   .object({
@@ -60,8 +61,8 @@ export default function RegisterPage() {
 
   return (
     <>
-      <div className="flex items-center justify-center min-h-screen">
-        <Card className="w-full max-w-sm">
+        <AuthBackground>
+        <Card className="min-w-sm max-w-md bg-card/50 font-quicksand ">
           <CardHeader>
             <CardTitle>Create an account</CardTitle>
           </CardHeader>
@@ -149,7 +150,7 @@ export default function RegisterPage() {
             </form>
           </CardContent>
         </Card>
-      </div>
+    </AuthBackground>
     </>
   );
 }
