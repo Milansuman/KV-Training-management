@@ -9,9 +9,7 @@ export default function MainLayout({
     <>
       <AppNavbar />
 
-      <main className="pt-24">
-        {children}
-      </main>
+      <main className="pt-24">{children}</main>
     </>
   );
 }
