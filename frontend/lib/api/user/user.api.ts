@@ -43,9 +43,8 @@ const userApi = baseSlice.injectEndpoints({
       { userId: number; programId: number }
     >({
       query: ({ userId, programId }) => ({
-        url: `/user/${userId}/program-status`,
-        method: "GET",
-        params: { program_id: programId },
+        url: `/user/${userId}/program-status?program_id=${programId}`,
+        method: "GET"
       }),
       providesTags: (result, error, { userId, programId }) => [
         { type: "User" as const, id: `STATUS_${userId}_${programId}` },
