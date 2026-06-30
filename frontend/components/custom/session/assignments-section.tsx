@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   CalendarDays,
   Clock,
@@ -55,6 +55,7 @@ import {
 } from "@/lib/api/assignment-submissions/assignment-submissions.api";
 import type { AssignmentResponse } from "@/lib/api/assignments/assignments.type";
 import type { UserResponse } from "@/lib/api/user/user.type";
+import { useGetAllUsersQuery } from "@/lib/api/user/user.api";
 
 function getErrorDetail(err: unknown): string {
   const data = (err as { data?: { detail?: string; message?: string } })?.data;
@@ -90,6 +91,16 @@ export default function AssignmentsSection({
   user,
   canManage,
 }: AssignmentsSectionProps) {
+  const { data: allUsers = [] } = useGetAllUsersQuery();
+
+  const userMap = useMemo(() => {
+    const map = new Map<number, string>();
+    for (const u of allUsers) {
+      map.set(u.id, u.display_name);
+    }
+    return map;
+  }, [allUsers]);
+
   const { data: assignments = [], isLoading: assignmentsLoading } =
     useGetAssignmentsBySessionIdQuery(sessionId);
   const [createAssignment, { isLoading: isCreatingAssignment }] =
@@ -581,7 +592,7 @@ export default function AssignmentsSection({
                     <TableCell className="font-medium">
                       <div className="flex items-center gap-2">
                         <User className="size-4 text-muted-foreground" />
-                        User #{sub.user_id}
+                        {userMap.get(sub.user_id) ?? `User #${sub.user_id}`}
                       </div>
                     </TableCell>
                     <TableCell>

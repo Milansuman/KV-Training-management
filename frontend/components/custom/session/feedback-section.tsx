@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { Loader2, Sparkles, User } from "lucide-react";
 import {
   Card,
@@ -10,6 +11,7 @@ import {
 } from "@/components/ui/card";
 
 import { useGetFeedbackSubmissionsBySessionQuery } from "@/lib/api/feedback/feedback.api";
+import { useGetAllUsersQuery } from "@/lib/api/user/user.api";
 
 const formatDateTimeLong = (dateStr: string) =>
   new Date(dateStr).toLocaleDateString("en-US", {
@@ -28,6 +30,15 @@ interface FeedbackSectionProps {
 export default function FeedbackSection({ sessionId }: FeedbackSectionProps) {
   const { data: feedbackList = [], isLoading: feedbackLoading } =
     useGetFeedbackSubmissionsBySessionQuery(sessionId);
+  const { data: allUsers = [] } = useGetAllUsersQuery();
+
+  const userMap = useMemo(() => {
+    const map = new Map<number, string>();
+    for (const u of allUsers) {
+      map.set(u.id, u.display_name);
+    }
+    return map;
+  }, [allUsers]);
 
   return (
     <div className="flex flex-col gap-6 mt-4">
@@ -71,7 +82,7 @@ export default function FeedbackSection({ sessionId }: FeedbackSectionProps) {
                   </div>
                   <div className="flex flex-col">
                     <CardTitle className="text-sm font-medium">
-                      User #{fb.user_id}
+                      {userMap.get(fb.user_id) ?? `User #${fb.user_id}`}
                     </CardTitle>
                     <CardDescription className="text-xs">
                       {formatDateTimeLong(fb.submitted_at)}
