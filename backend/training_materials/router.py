@@ -2,6 +2,8 @@ from fastapi import APIRouter
 from fastapi import Depends, File, Form, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from auth.dependencies import get_current_user
+from auth.schema import TokenPayload
 from db.connection import get_db
 
 from training_materials import service
@@ -24,7 +26,9 @@ async def upload_material(
     session_id: int = Form(...),
     user_id: int = Form(...),
     file: UploadFile = File(...),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user: TokenPayload = Depends(get_current_user)
+
 ):
     return await service.upload_material(
         db=db,
@@ -43,7 +47,9 @@ async def create_material_from_url(
     url: str = Form(...),
     session_id: int = Form(...),
     user_id: int = Form(...),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user: TokenPayload = Depends(get_current_user)
+
 ):
     return await service.create_material_from_url(
         db=db,
@@ -85,7 +91,9 @@ async def update_material(
     title: str = Form(...),
     file: UploadFile | None = File(None),
     url: str | None = Form(None),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user: TokenPayload = Depends(get_current_user)
+
 ):
     return await service.update_material(
         db=db,
@@ -100,7 +108,9 @@ async def update_material(
 )
 async def delete_material(
     material_id: int,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user: TokenPayload = Depends(get_current_user)
+
 ):
     await service.delete_material(
         db=db,
