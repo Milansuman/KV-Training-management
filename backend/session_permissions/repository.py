@@ -122,3 +122,17 @@ async def create_session_permission(
     db.add(permission)
     await db.commit()
     return permission
+
+
+async def get_session_permissions_by_session_id(
+    db: AsyncSession,
+    session_id: int,
+) -> list[tuple[SessionPermission, User]]:
+    rows = (await db.execute(
+        select(SessionPermission, User)
+        .join(User, User.id == SessionPermission.user_id)
+        .where(SessionPermission.session_id == session_id)
+        .where(SessionPermission.deleted_at.is_(None))
+        .where(User.deleted_at.is_(None))
+    )).all()
+    return [(row[0], row[1]) for row in rows]

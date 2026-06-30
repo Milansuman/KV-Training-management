@@ -3,6 +3,7 @@ import {
   AddSessionPermissionRequest,
   SessionPermissionResponse,
   SessionResponse,
+  SessionUserResponse,
   SessionWithRoleResponse,
   UpdateSessionPermissionRequest,
 } from "./session-permissions.type"
@@ -81,6 +82,23 @@ export const sessionPermissionsApi = baseSlice.injectEndpoints({
       ],
     }),
 
+    getSessionUsers: builder.query<SessionUserResponse[], number>({
+      query: (sessionId) => ({
+        url: `/session-permissions/session/${sessionId}`,
+        method: "GET",
+      }),
+      providesTags: (result, error, sessionId) =>
+        result
+          ? [
+              { type: "SessionPermission" as const, id: `SESSION_${sessionId}` },
+              ...result.map(({ id }) => ({
+                type: "SessionPermission" as const,
+                id,
+              })),
+            ]
+          : [{ type: "SessionPermission" as const, id: `SESSION_${sessionId}` }],
+    }),
+
     deleteSessionPermission: builder.mutation<void, number>({
       query: (permissionId) => ({
         url: `/session-permissions/${permissionId}`,
@@ -97,6 +115,7 @@ export const sessionPermissionsApi = baseSlice.injectEndpoints({
 export const {
   useGetSessionsByProgramQuery,
   useGetSessionsWithRoleQuery,
+  useGetSessionUsersQuery,
   useAddSessionPermissionMutation,
   useUpdateSessionPermissionMutation,
   useDeleteSessionPermissionMutation,

@@ -63,3 +63,14 @@ class SessionWithRoleResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
     role: SessionRoles | None
+
+
+class SessionUserResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    user_id: int
+    session_id: int
+    role: SessionRoles
+    display_name: str
+    email: str

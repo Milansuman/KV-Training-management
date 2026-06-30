@@ -7,6 +7,7 @@ from models.session import Session
 from session_permissions.schema import SessionWithRoleResponse
 from models.session_permission import SessionPermission, SessionRoles
 from session_permissions import repository
+from session_permissions.schema import SessionUserResponse
 
 _STAFF_ALLOWED_ROLES = {SessionRoles.TRAINER, SessionRoles.MODERATOR, SessionRoles.CANDIDATE}
 _CANDIDATE_ALLOWED_ROLES = {SessionRoles.CANDIDATE}
@@ -157,4 +158,28 @@ async def get_session_permissions_by_program(
             role=role,
         )
         for session, role in rows
+    ]
+
+
+async def get_session_users(
+    db: AsyncSession,
+    session_id: int,
+) -> list[SessionUserResponse]:
+    try:
+        rows = await repository.get_session_permissions_by_session_id(
+            db=db, session_id=session_id
+        )
+    except SQLAlchemyError as exc:
+        raise BadRequestException("Unable to fetch session users") from exc
+
+    return [
+        SessionUserResponse(
+            id=permission.id,
+            user_id=permission.user_id,
+            session_id=permission.session_id,
+            role=permission.role,
+            display_name=user.display_name,
+            email=user.email,
+        )
+        for permission, user in rows
     ]

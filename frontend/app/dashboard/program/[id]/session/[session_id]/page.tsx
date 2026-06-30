@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useParams } from "next/navigation";
-import { Loader2 } from "lucide-react";
+import { GraduationCap, Loader2, UserCog, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -24,7 +24,9 @@ import { toast } from "sonner";
 
 import { useGetSessionQuery } from "@/lib/api/sessions/sessions.api";
 import { useGetMyselfQuery } from "@/lib/api/user/user.api";
+import { useGetSessionUsersQuery } from "@/lib/api/session-permissions/session-permissions.api";
 import { useCreateFeedbackSubmissionMutation } from "@/lib/api/feedback-submissions/feedback-submissions.api";
+import type { SessionUserResponse } from "@/lib/api/session-permissions/session-permissions.type";
 
 import TrainingMaterialsSection from "@/components/custom/session/training-materials-section";
 import AssignmentsSection from "@/components/custom/session/assignments-section";
@@ -55,6 +57,21 @@ export default function SessionPage() {
     isError: sessionError,
   } = useGetSessionQuery(sessionId);
   const { data: user } = useGetMyselfQuery();
+
+  // ── Session users (trainers / moderators) ────────────────────────
+  const { data: sessionUsers = [] } = useGetSessionUsersQuery(sessionId);
+
+  const [isUsersDialogOpen, setIsUsersDialogOpen] = useState(false);
+
+  const { trainers, moderators } = useMemo(() => {
+    const trainers: SessionUserResponse[] = [];
+    const moderators: SessionUserResponse[] = [];
+    for (const u of sessionUsers) {
+      if (u.role === "TRAINER") trainers.push(u);
+      else if (u.role === "MODERATOR") moderators.push(u);
+    }
+    return { trainers, moderators };
+  }, [sessionUsers]);
 
   // ── Feedback submission dialog ────────────────────────────────────
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
@@ -114,6 +131,123 @@ export default function SessionPage() {
             {formatDateTime(session.start_datetime)} —{" "}
             {formatDateTime(session.end_datetime)}
           </p>
+
+          {/* ── Trainers & Moderators ──────────────────────── */}
+          {(trainers.length > 0 || moderators.length > 0) && (
+            <div className="flex flex-wrap items-center gap-2">
+              {trainers.length > 0 && (
+                <div className="flex items-center gap-1.5 rounded-full border bg-muted/50 px-3 py-1 text-xs font-medium text-muted-foreground">
+                  <GraduationCap className="h-3.5 w-3.5" />
+                  <span>
+                    {trainers
+                      .slice(0, 3)
+                      .map((t) => t.display_name)
+                      .join(", ")}
+                    {trainers.length > 3 &&
+                      ` +${trainers.length - 3} more`}
+                  </span>
+                </div>
+              )}
+              {moderators.length > 0 && (
+                <div className="flex items-center gap-1.5 rounded-full border bg-muted/50 px-3 py-1 text-xs font-medium text-muted-foreground">
+                  <UserCog className="h-3.5 w-3.5" />
+                  <span>
+                    {moderators
+                      .slice(0, 3)
+                      .map((m) => m.display_name)
+                      .join(", ")}
+                    {moderators.length > 3 &&
+                      ` +${moderators.length - 3} more`}
+                  </span>
+                </div>
+              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 text-xs"
+                onClick={() => setIsUsersDialogOpen(true)}
+              >
+                <Users className="mr-1 h-3.5 w-3.5" />
+                Show More
+              </Button>
+
+              {/* ── Users dialog ────────────────────────── */}
+              <Dialog
+                open={isUsersDialogOpen}
+                onOpenChange={setIsUsersDialogOpen}
+              >
+                <DialogContent className="sm:max-w-lg">
+                  <DialogHeader>
+                    <DialogTitle>
+                      Session Users
+                    </DialogTitle>
+                    <DialogDescription>
+                      All trainers and moderators assigned to
+                      this session.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="max-h-80 space-y-4 overflow-y-auto">
+                    {trainers.length > 0 && (
+                      <div>
+                        <h4 className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-foreground">
+                          <GraduationCap className="h-4 w-4" />
+                          Trainers
+                        </h4>
+                        <div className="space-y-1">
+                          {trainers.map((t) => (
+                            <div
+                              key={t.id}
+                              className="flex items-center justify-between rounded-md bg-muted/50 px-3 py-2 text-sm"
+                            >
+                              <span className="font-medium">
+                                {t.display_name}
+                              </span>
+                              <span className="text-xs text-muted-foreground">
+                                {t.email}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {moderators.length > 0 && (
+                      <div>
+                        <h4 className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-foreground">
+                          <UserCog className="h-4 w-4" />
+                          Moderators
+                        </h4>
+                        <div className="space-y-1">
+                          {moderators.map((m) => (
+                            <div
+                              key={m.id}
+                              className="flex items-center justify-between rounded-md bg-muted/50 px-3 py-2 text-sm"
+                            >
+                              <span className="font-medium">
+                                {m.display_name}
+                              </span>
+                              <span className="text-xs text-muted-foreground">
+                                {m.email}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <DialogFooter>
+                    <Button
+                      variant="outline"
+                      onClick={() =>
+                        setIsUsersDialogOpen(false)
+                      }
+                    >
+                      Close
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </div>
+          )}
         </div>
         <div className="flex flex-col gap-2 lg:ml-auto">
           <div className="flex flex-col gap-2 lg:flex-row">

@@ -31,3 +31,12 @@ export interface SessionResponse {
 export interface SessionWithRoleResponse extends SessionResponse {
   role: SessionRole | null
 }
+
+export interface SessionUserResponse {
+  id: number
+  user_id: number
+  session_id: number
+  role: SessionRole
+  display_name: string
+  email: string
+}
