@@ -3,6 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from exceptions.exceptions import UnprocessableEntityException
 from exceptions import NotFoundException
+from topics import repository as topic_repository
 
 from models.session import Session
 
@@ -135,4 +136,68 @@ async def delete_session(
     await repository.delete_session(
         db=db,
         session=session
+    )
+
+async def assign_topic_to_session(
+    db: AsyncSession,
+    session_id: int,
+    topic_id: int
+):
+    try:
+        session = await repository.get_session_by_id(
+            db=db,
+            session_id=session_id
+        )
+    except NoResultFound:
+        logger.exception("Session not found during attach topic to session...")
+        raise NotFoundException(
+            "Session not found"
+        )
+    try:
+        topic = await topic_repository.get_topic_by_id(
+            db=db,
+            topic_id=topic_id
+        )
+    except NoResultFound:
+        logger.exception("Topic not found during attach topic to session...")
+        raise NotFoundException(
+            "Topic not found"
+        )
+
+    return await repository.assign_topic_to_session(
+        db=db,
+        session=session,
+        topic=topic
+    )
+
+async def remove_topic_from_session(
+    db: AsyncSession,
+    session_id: int,
+    topic_id: int
+):
+    try:
+        session = await repository.get_session_by_id(
+            db=db,
+            session_id=session_id
+        )
+    except NoResultFound:
+        logger.exception("Session not found during detach topic from session...")
+        raise NotFoundException(
+            "Session not found"
+        )
+    try:
+        topic = await topic_repository.get_topic_by_id(
+            db=db,
+            topic_id=topic_id
+        )
+    except NoResultFound:
+        logger.exception("Topic not found during detach topic from session...")
+        raise NotFoundException(
+            "Topic not found"
+        )
+
+    return await repository.remove_topic_from_session(
+        db=db,
+        session=session,
+        topic=topic
     )
