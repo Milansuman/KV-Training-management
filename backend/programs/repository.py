@@ -41,6 +41,7 @@ async def get_programs_by_user_id(db: AsyncSession, user_id: int) -> list[Progra
         select(Program)
         .join(ProgramPermission, ProgramPermission.program_id == Program.id)
         .where(ProgramPermission.user_id == user_id)
+        .where(ProgramPermission.deleted_at.is_(None))
         .where(Program.deleted_at.is_(None))
     )).all()
     return list(programs)
