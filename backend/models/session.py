@@ -6,7 +6,7 @@ from sqlalchemy.schema import Column, ForeignKey, Table
 from sqlalchemy.types import DateTime, Text
 
 from db.connection import Base
-from models.entity import Entity
+from models.entity import AccessLogMixIn, Entity
 
 if TYPE_CHECKING:
     from models.program import Program
@@ -19,7 +19,7 @@ session_topic = Table(
     Column("topic_id", ForeignKey("topic.id", ondelete="CASCADE"))
 )
 
-class Session(Entity):
+class Session(Entity, AccessLogMixIn):
     __abstract__ = False
     __tablename__ = "session"
 

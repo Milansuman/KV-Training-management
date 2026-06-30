@@ -17,6 +17,8 @@ import models.session # noqa: F401
 import models.session_permission # noqa: F401
 import models.topic # noqa: F401
 import models.training_material # noqa: F401
+import models.feedback # noqa: F401
+import models.feedback_submission # noqa: F401
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

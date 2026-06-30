@@ -4,13 +4,13 @@ from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.schema import ForeignKey
 from sqlalchemy.types import Enum as SqlEnum
 
-from models.entity import Entity
+from models.entity import AccessLogMixIn, Entity
 
 class ProgramRoles(Enum):
     STAFF = "STAFF"
     CANDIDATE = "CANDIDATE"
 
-class ProgramPermission(Entity):
+class ProgramPermission(Entity, AccessLogMixIn):
     __abstract__ = False
     __tablename__ = "program_permission"
 

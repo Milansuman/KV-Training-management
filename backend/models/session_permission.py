@@ -4,14 +4,14 @@ from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.schema import ForeignKey
 from sqlalchemy.types import Enum as SqlEnum
 
-from models.entity import Entity
+from models.entity import AccessLogMixIn, Entity
 
 class SessionRoles(Enum):
     TRAINER = "TRAINER"
     MODERATOR = "MODERATOR"
     CANDIDATE = "CANDIDATE"
 
-class SessionPermission(Entity):
+class SessionPermission(Entity, AccessLogMixIn):
     __abstract__ = False
     __tablename__ = "session_permission"
 

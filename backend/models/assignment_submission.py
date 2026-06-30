@@ -2,9 +2,9 @@ from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.schema import ForeignKey
 from sqlalchemy.types import Text
 
-from models.entity import Entity
+from models.entity import AccessLogMixIn, Entity
 
-class AssignmentSubmission(Entity):
+class AssignmentSubmission(Entity, AccessLogMixIn):
     __abstract__ = False
     __tablename__ = "assignment_submission"
 
