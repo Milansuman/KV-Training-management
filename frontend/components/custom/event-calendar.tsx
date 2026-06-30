@@ -35,6 +35,7 @@ import {
 import { useGetMyselfQuery } from "@/lib/api/user/user.api";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import Link from "next/link";
 
 const formatDateTime = (date: Date | null) => {
   if (!date) return "";
@@ -54,13 +55,13 @@ const toDatetimeLocalString = (date: Date) => {
   return `${year}-${month}-${day}T${hours}:${minutes}`;
 };
 
-function EventButton({ info }: { info: EventContentArg }) {
+function EventButton({ info, programId }: { info: EventContentArg, programId: number }) {
   return (
     <Popover>
       <PopoverTrigger className="w-full h-full">
-        <Button variant="outline" className="w-full h-full text-left justify-start truncate">
+        <Badge className="w-full h-full text-left justify-start truncate">
           {info.event.title}
-        </Button>
+        </Badge>
       </PopoverTrigger>
       <PopoverContent className="flex flex-col gap-3">
         <div>
@@ -90,7 +91,9 @@ function EventButton({ info }: { info: EventContentArg }) {
           )}
         </div>
 
-        <Button className="w-full mt-1">View Session</Button>
+        <Link href={`/dashboard/program/${programId}/session/${info.event.extendedProps.session_id}`}>
+          <Button className="w-full mt-1">View Session</Button>
+        </Link>
       </PopoverContent>
     </Popover>
   );
@@ -127,6 +130,7 @@ export function EventCalendar({ className, programId }: EventCalendarProps) {
       extendedProps: {
         description: session.description,
         program_id: session.program_id,
+        session_id: session.id,
         topics: [], // backend does not store topics for sessions directly in create/update endpoint payload yet
       },
     }));
@@ -198,7 +202,7 @@ export function EventCalendar({ className, programId }: EventCalendarProps) {
       <FullCalendar
         events={events}
         plugins={[dayGridPlugin, interactionPlugin, timeGridPlugin]}
-        eventContent={(info) => <EventButton info={info} />}
+        eventContent={(info) => <EventButton info={info} programId={programId} />}
         initialView="dayGridMonth"
         headerToolbar={{
           left: "prev,next",
