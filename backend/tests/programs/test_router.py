@@ -139,6 +139,8 @@ def test_get_progress_returns_program_for_user(client) -> None:
     assert "completed_sessions" in body[0]
     assert "created_at" in body[0]
     assert "updated_at" in body[0]
+    assert "start_date" in body[0]
+    assert "end_date" in body[0]
 
 
 def test_get_progress_session_counts_default_to_zero(client) -> None:

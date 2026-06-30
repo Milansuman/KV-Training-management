@@ -14,7 +14,7 @@ async def db_session():
         "sqlite+aiosqlite:///:memory:",
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
-        echo=True,
+        echo=False,
     )
 
     async with engine.begin() as conn:
