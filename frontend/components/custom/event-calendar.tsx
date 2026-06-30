@@ -21,6 +21,7 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -31,11 +32,25 @@ import { EventContentArg } from "@fullcalendar/core/index.js";
 import {
   useGetSessionsByProgramIdQuery,
   useCreateSessionMutation,
+  useUpdateSessionMutation,
+  useDeleteSessionMutation,
 } from "@/lib/api/sessions/sessions.api";
 import { useGetMyselfQuery } from "@/lib/api/user/user.api";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, Pencil, Trash2, TriangleAlert } from "lucide-react";
 import Link from "next/link";
+
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogMedia,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const formatDateTime = (date: Date | null) => {
   if (!date) return "";
@@ -55,55 +70,6 @@ const toDatetimeLocalString = (date: Date) => {
   return `${year}-${month}-${day}T${hours}:${minutes}`;
 };
 
-function EventButton({ info, programId }: { info: EventContentArg, programId: number }) {
-  return (
-    <Popover>
-      <PopoverTrigger className="w-full h-full">
-        <Badge className="w-full h-full text-left justify-start truncate">
-          {info.event.title}
-        </Badge>
-      </PopoverTrigger>
-      <PopoverContent className="flex flex-col gap-3">
-        <div>
-          <PopoverTitle>{info.event.title}</PopoverTitle>
-          <PopoverDescription>
-            {info.event.extendedProps.description}
-          </PopoverDescription>
-        </div>
-        <div className="flex flex-row gap-2 flex-wrap">
-          {info.event.extendedProps.topics?.map((topic: string) => (
-            <Badge key={topic}>{topic}</Badge>
-          ))}
-        </div>
-
-        <div className="flex flex-col gap-1 text-xs text-muted-foreground border-t pt-2 border-border">
-          {info.event.start && (
-            <div>
-              <span className="font-medium text-foreground">Starts: </span>
-              {formatDateTime(info.event.start)}
-            </div>
-          )}
-          {info.event.end && (
-            <div>
-              <span className="font-medium text-foreground">Ends: </span>
-              {formatDateTime(info.event.end)}
-            </div>
-          )}
-        </div>
-
-        <Link href={`/dashboard/program/${programId}/session/${info.event.extendedProps.session_id}`}>
-          <Button className="w-full mt-1">View Session</Button>
-        </Link>
-      </PopoverContent>
-    </Popover>
-  );
-}
-
-interface EventCalendarProps {
-  className?: string;
-  programId: number;
-}
-
 const sessionSchema = z.object({
   title: z.string().min(1, "Title is required"),
   description: z.string().min(1, "Description is required"),
@@ -114,12 +80,29 @@ const sessionSchema = z.object({
 
 type SessionFormValues = z.infer<typeof sessionSchema>;
 
+interface EventCalendarProps {
+  className?: string;
+  programId: number;
+}
+
+// ── Session data shape from the API ─────────────────────────────────
+interface SessionData {
+  id: number;
+  title: string;
+  description: string;
+  start_datetime: string;
+  end_datetime: string;
+  program_id: number;
+}
+
 export function EventCalendar({ className, programId }: EventCalendarProps) {
   const { data: user } = useGetMyselfQuery();
   const { data: dbSessions = [], isLoading: sessionsLoading } =
     useGetSessionsByProgramIdQuery(programId);
 
   const [createSession, { isLoading: isCreating }] = useCreateSessionMutation();
+  const [updateSession, { isLoading: isUpdating }] = useUpdateSessionMutation();
+  const [deleteSession, { isLoading: isDeleting }] = useDeleteSessionMutation();
 
   const events = React.useMemo(() => {
     return dbSessions.map((session) => ({
@@ -131,16 +114,20 @@ export function EventCalendar({ className, programId }: EventCalendarProps) {
         description: session.description,
         program_id: session.program_id,
         session_id: session.id,
-        topics: "topics" in session && Array.isArray((session as any).topics)
-          ? (session as any).topics.map((t: any) => t.title)
-          : [],
+        topics:
+          "topics" in session && Array.isArray((session as any).topics)
+            ? (session as any).topics.map((t: any) => t.title)
+            : [],
       },
     }));
   }, [dbSessions]);
 
-  const [isOpen, setIsOpen] = React.useState(false);
+  const isAdmin = user?.is_admin ?? false;
 
-  const { register, handleSubmit, reset } = useForm<SessionFormValues>({
+  // ── Create dialog ────────────────────────────────────────────────
+  const [isCreateOpen, setIsCreateOpen] = React.useState(false);
+
+  const createForm = useForm<SessionFormValues>({
     resolver: zodResolver(sessionSchema),
     defaultValues: {
       title: "",
@@ -152,9 +139,7 @@ export function EventCalendar({ className, programId }: EventCalendarProps) {
   });
 
   const handleSelect = (selectInfo: any) => {
-    if (!user?.is_admin) {
-      return;
-    }
+    if (!isAdmin) return;
     const start = new Date(selectInfo.start);
     const end = new Date(selectInfo.end);
 
@@ -163,7 +148,7 @@ export function EventCalendar({ className, programId }: EventCalendarProps) {
       end.setTime(start.getTime() + 60 * 60 * 1000);
     }
 
-    reset({
+    createForm.reset({
       title: "",
       description: "",
       start_datetime: toDatetimeLocalString(start),
@@ -171,10 +156,10 @@ export function EventCalendar({ className, programId }: EventCalendarProps) {
       topics: "",
     });
 
-    setIsOpen(true);
+    setIsCreateOpen(true);
   };
 
-  const onSubmit = async (data: SessionFormValues) => {
+  const handleCreateSubmit = async (data: SessionFormValues) => {
     try {
       await createSession({
         title: data.title,
@@ -185,12 +170,166 @@ export function EventCalendar({ className, programId }: EventCalendarProps) {
       }).unwrap();
 
       toast.success("Session scheduled successfully!");
-      setIsOpen(false);
+      setIsCreateOpen(false);
     } catch (err: any) {
       toast.error(err?.data?.detail || "Failed to schedule session");
     }
   };
 
+  // ── Edit dialog ──────────────────────────────────────────────────
+  const [editingSession, setEditingSession] = React.useState<SessionData | null>(null);
+  const isEditOpen = editingSession !== null;
+
+  const editForm = useForm<SessionFormValues>({
+    resolver: zodResolver(sessionSchema),
+    defaultValues: {
+      title: "",
+      description: "",
+      start_datetime: "",
+      end_datetime: "",
+      topics: "",
+    },
+  });
+
+  function openEditDialog(session: SessionData) {
+    setEditingSession(session);
+    editForm.reset({
+      title: session.title,
+      description: session.description,
+      start_datetime: toDatetimeLocalString(new Date(session.start_datetime)),
+      end_datetime: toDatetimeLocalString(new Date(session.end_datetime)),
+      topics: "",
+    });
+  }
+
+  function closeEditDialog() {
+    setEditingSession(null);
+    editForm.reset();
+  }
+
+  const handleEditSubmit = async (data: SessionFormValues) => {
+    if (!editingSession) return;
+    try {
+      await updateSession({
+        sessionId: editingSession.id,
+        body: {
+          title: data.title,
+          description: data.description,
+          start_datetime: new Date(data.start_datetime).toISOString(),
+          end_datetime: new Date(data.end_datetime).toISOString(),
+        },
+      }).unwrap();
+
+      toast.success("Session updated successfully!");
+      closeEditDialog();
+    } catch (err: any) {
+      toast.error(err?.data?.detail || "Failed to update session");
+    }
+  };
+
+  // ── Delete confirmation dialog state ────────────────────────────
+  const [deletingSessionId, setDeletingSessionId] = React.useState<number | null>(
+    null,
+  );
+  const isDeleteOpen = deletingSessionId !== null;
+
+  async function handleConfirmDelete() {
+    if (!deletingSessionId) return;
+    try {
+      await deleteSession(deletingSessionId).unwrap();
+      toast.success("Session deleted successfully!");
+      setDeletingSessionId(null);
+    } catch (err: any) {
+      toast.error(err?.data?.detail || "Failed to delete session");
+    }
+  }
+
+  // ── Event popover with edit/delete buttons for admins ────────────
+  function EventButton({
+    info,
+    programId,
+  }: {
+    info: EventContentArg;
+    programId: number;
+  }) {
+    const rawSession = dbSessions.find(
+      (s) => s.id === Number(info.event.id),
+    );
+
+    return (
+      <Popover>
+        <PopoverTrigger className="w-full h-full">
+          <Badge className="w-full h-full text-left justify-start truncate">
+            {info.event.title}
+          </Badge>
+        </PopoverTrigger>
+        <PopoverContent className="flex flex-col gap-3">
+          <div>
+            <PopoverTitle>{info.event.title}</PopoverTitle>
+            <PopoverDescription>
+              {info.event.extendedProps.description}
+            </PopoverDescription>
+          </div>
+          <div className="flex flex-row gap-2 flex-wrap">
+            {info.event.extendedProps.topics?.map((topic: string) => (
+              <Badge key={topic}>{topic}</Badge>
+            ))}
+          </div>
+
+          <div className="flex flex-col gap-1 text-xs text-muted-foreground border-t pt-2 border-border">
+            {info.event.start && (
+              <div>
+                <span className="font-medium text-foreground">Starts: </span>
+                {formatDateTime(info.event.start)}
+              </div>
+            )}
+            {info.event.end && (
+              <div>
+                <span className="font-medium text-foreground">Ends: </span>
+                {formatDateTime(info.event.end)}
+              </div>
+            )}
+          </div>
+
+          <Link
+            href={`/dashboard/program/${programId}/session/${info.event.extendedProps.session_id}`}
+          >
+            <Button className="w-full mt-1">View Session</Button>
+          </Link>
+
+          {isAdmin && rawSession && (
+            <div className="flex gap-2 mt-1">
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1"
+                onClick={() => openEditDialog(rawSession)}
+              >
+                <Pencil className="mr-1 h-4 w-4" />
+                Edit
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                className="flex-1"
+                disabled={isDeleting}
+                onClick={() => setDeletingSessionId(rawSession.id)}
+              >
+                {isDeleting && deletingSessionId === rawSession.id ? (
+                  <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                ) : (
+                  <Trash2 className="mr-1 h-4 w-4" />
+                )}
+                Delete
+              </Button>
+            </div>
+          )}
+        </PopoverContent>
+      </Popover>
+    );
+  }
+
+  // ── Loading state ──────────────────────────────────────────────
   if (sessionsLoading) {
     return (
       <div className="flex h-full w-full items-center justify-center">
@@ -204,7 +343,9 @@ export function EventCalendar({ className, programId }: EventCalendarProps) {
       <FullCalendar
         events={events}
         plugins={[dayGridPlugin, interactionPlugin, timeGridPlugin]}
-        eventContent={(info) => <EventButton info={info} programId={programId} />}
+        eventContent={(info) => (
+          <EventButton info={info} programId={programId} />
+        )}
         initialView="dayGridMonth"
         headerToolbar={{
           left: "prev,next",
@@ -213,13 +354,14 @@ export function EventCalendar({ className, programId }: EventCalendarProps) {
         }}
         height="100%"
         handleWindowResize
-        selectable={user?.is_admin || false}
-        editable={user?.is_admin || false}
-        selectMirror={user?.is_admin || false}
+        selectable={isAdmin}
+        editable={isAdmin}
+        selectMirror={isAdmin}
         select={handleSelect}
       />
 
-      <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      {/* ── Create Session Dialog ─────────────────────────────── */}
+      <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
         <DialogContent className="sm:max-w-md animate-in fade-in zoom-in duration-200">
           <DialogHeader>
             <DialogTitle>Create New Session</DialogTitle>
@@ -228,7 +370,7 @@ export function EventCalendar({ className, programId }: EventCalendarProps) {
             </DialogDescription>
           </DialogHeader>
           <form
-            onSubmit={handleSubmit(onSubmit)}
+            onSubmit={createForm.handleSubmit(handleCreateSubmit)}
             className="flex flex-col gap-4 py-2"
           >
             <div className="flex flex-col gap-1.5">
@@ -236,7 +378,7 @@ export function EventCalendar({ className, programId }: EventCalendarProps) {
               <Input
                 id="title"
                 placeholder="e.g., Intro to Backend Development"
-                {...register("title")}
+                {...createForm.register("title")}
               />
             </div>
 
@@ -246,7 +388,7 @@ export function EventCalendar({ className, programId }: EventCalendarProps) {
                 id="description"
                 placeholder="Brief summary of the session goals..."
                 className="w-full min-h-[70px] rounded-lg border border-input bg-transparent px-2.5 py-1.5 text-base transition-colors outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm dark:bg-input/30"
-                {...register("description")}
+                {...createForm.register("description")}
               />
             </div>
 
@@ -256,7 +398,7 @@ export function EventCalendar({ className, programId }: EventCalendarProps) {
                 <Input
                   id="start_datetime"
                   type="datetime-local"
-                  {...register("start_datetime")}
+                  {...createForm.register("start_datetime")}
                 />
               </div>
               <div className="flex flex-col gap-1.5">
@@ -264,7 +406,7 @@ export function EventCalendar({ className, programId }: EventCalendarProps) {
                 <Input
                   id="end_datetime"
                   type="datetime-local"
-                  {...register("end_datetime")}
+                  {...createForm.register("end_datetime")}
                 />
               </div>
             </div>
@@ -273,18 +415,126 @@ export function EventCalendar({ className, programId }: EventCalendarProps) {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => setIsOpen(false)}
+                onClick={() => setIsCreateOpen(false)}
               >
                 Cancel
               </Button>
               <Button type="submit" disabled={isCreating}>
-                {isCreating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isCreating && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
                 Create Session
               </Button>
             </div>
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* ── Edit Session Dialog ───────────────────────────────── */}
+      <Dialog open={isEditOpen} onOpenChange={closeEditDialog}>
+        <DialogContent className="sm:max-w-md animate-in fade-in zoom-in duration-200">
+          <DialogHeader>
+            <DialogTitle>Edit Session</DialogTitle>
+            <DialogDescription>
+              Update the details for this training session.
+            </DialogDescription>
+          </DialogHeader>
+          <form
+            onSubmit={editForm.handleSubmit(handleEditSubmit)}
+            className="flex flex-col gap-4 py-2"
+          >
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="edit-title">Title</Label>
+              <Input
+                id="edit-title"
+                placeholder="e.g., Intro to Backend Development"
+                {...editForm.register("title")}
+              />
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="edit-description">Description</Label>
+              <textarea
+                id="edit-description"
+                placeholder="Brief summary of the session goals..."
+                className="w-full min-h-[70px] rounded-lg border border-input bg-transparent px-2.5 py-1.5 text-base transition-colors outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm dark:bg-input/30"
+                {...editForm.register("description")}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="edit-start_datetime">Start Time</Label>
+                <Input
+                  id="edit-start_datetime"
+                  type="datetime-local"
+                  {...editForm.register("start_datetime")}
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="edit-end_datetime">End Time</Label>
+                <Input
+                  id="edit-end_datetime"
+                  type="datetime-local"
+                  {...editForm.register("end_datetime")}
+                />
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={closeEditDialog}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isUpdating}>
+                {isUpdating && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
+                Update Session
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Delete Confirmation Dialog ──────────────────────────── */}
+      <AlertDialog
+        open={isDeleteOpen}
+        onOpenChange={(open) => {
+          if (!open) setDeletingSessionId(null);
+        }}
+      >
+        <AlertDialogContent size="sm">
+          <AlertDialogHeader>
+            <AlertDialogMedia>
+              <TriangleAlert className="text-destructive" />
+            </AlertDialogMedia>
+            <AlertDialogTitle>Delete Session</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this session? This action cannot be
+              undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDeletingSessionId(null)}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              disabled={isDeleting}
+              onClick={handleConfirmDelete}
+            >
+              {isDeleting && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

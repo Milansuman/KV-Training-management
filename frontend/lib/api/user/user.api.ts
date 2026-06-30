@@ -1,5 +1,5 @@
 import { baseSlice } from "../base"
-import { UserCreate, UserResponse, UserUpdate } from "./user.type"
+import { UserCreate, UserProgramStatusResponse, UserResponse, UserUpdate } from "./user.type"
 
 const userApi = baseSlice.injectEndpoints({
   endpoints: (builder) => ({
@@ -38,6 +38,20 @@ const userApi = baseSlice.injectEndpoints({
       providesTags: (result, error, id) => [{ type: "User" as const, id }],
     }),
 
+    getUserProgramStatus: builder.query<
+      UserProgramStatusResponse,
+      { userId: number; programId: number }
+    >({
+      query: ({ userId, programId }) => ({
+        url: `/user/${userId}/program-status`,
+        method: "GET",
+        params: { program_id: programId },
+      }),
+      providesTags: (result, error, { userId, programId }) => [
+        { type: "User" as const, id: `STATUS_${userId}_${programId}` },
+      ],
+    }),
+
     updateUser: builder.mutation<
       UserResponse,
       { id: number; body: UserUpdate }
@@ -68,6 +82,7 @@ const userApi = baseSlice.injectEndpoints({
 
 export const {
   useGetMyselfQuery,
+  useGetUserProgramStatusQuery,
   useCreateUserMutation,
   useGetAllUsersQuery,
   useGetUserByIdQuery,

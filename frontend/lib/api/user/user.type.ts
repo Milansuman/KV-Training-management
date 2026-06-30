@@ -21,3 +21,15 @@ export interface UserUpdate {
   password?: string
   is_admin?: boolean
 }
+
+export interface SessionRoleInfo {
+  session_id: number
+  session_title: string
+  role: "TRAINER" | "MODERATOR" | "CANDIDATE" | null
+}
+
+export interface UserProgramStatusResponse {
+  is_admin: boolean
+  program_role: "STAFF" | "CANDIDATE" | null
+  session_roles: SessionRoleInfo[]
+}

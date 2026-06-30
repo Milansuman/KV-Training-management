@@ -51,11 +51,13 @@ function getErrorDetail(err: unknown): string {
 interface TrainingMaterialsSectionProps {
   sessionId: number;
   user: UserResponse | undefined;
+  canManage: boolean;
 }
 
 export default function TrainingMaterialsSection({
   sessionId,
   user,
+  canManage,
 }: TrainingMaterialsSectionProps) {
   const { data: materials = [], isLoading: materialsLoading } =
     useGetTrainingMaterialsBySessionQuery(sessionId);
@@ -173,21 +175,22 @@ export default function TrainingMaterialsSection({
   return (
     <div className="flex flex-col gap-6 mt-4">
       <div className="flex items-center justify-between">
-        <Dialog
-          open={isMaterialAddOpen}
-          onOpenChange={(open) => {
-            setIsMaterialAddOpen(open);
-            if (!open) resetMaterialAddForm();
-          }}
-        >
-          <DialogTrigger
-            render={
-              <Button>
-                <Plus data-icon="inline-start" />
-                Add Material
-              </Button>
-            }
-          />
+        {canManage && (
+          <Dialog
+            open={isMaterialAddOpen}
+            onOpenChange={(open) => {
+              setIsMaterialAddOpen(open);
+              if (!open) resetMaterialAddForm();
+            }}
+          >
+            <DialogTrigger
+              render={
+                <Button>
+                  <Plus data-icon="inline-start" />
+                  Add Material
+                </Button>
+              }
+            />
           <DialogContent className="sm:max-w-md">
             <form onSubmit={handleAddMaterial}>
               <DialogHeader>
@@ -260,6 +263,7 @@ export default function TrainingMaterialsSection({
             </form>
           </DialogContent>
         </Dialog>
+        )}
       </div>
 
       {materialsLoading ? (
@@ -332,7 +336,7 @@ export default function TrainingMaterialsSection({
                       </Button>
                     </a>
                   )}
-                  {user?.is_admin && (
+                  {canManage && (
                     <div className="ml-auto flex items-center gap-1">
                       <button
                         type="button"

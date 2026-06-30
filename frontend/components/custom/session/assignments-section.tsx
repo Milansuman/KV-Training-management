@@ -82,11 +82,13 @@ const formatDateTimeLong = (dateStr: string) =>
 interface AssignmentsSectionProps {
   sessionId: number;
   user: UserResponse | undefined;
+  canManage: boolean;
 }
 
 export default function AssignmentsSection({
   sessionId,
   user,
+  canManage,
 }: AssignmentsSectionProps) {
   const { data: assignments = [], isLoading: assignmentsLoading } =
     useGetAssignmentsBySessionIdQuery(sessionId);
@@ -249,7 +251,7 @@ export default function AssignmentsSection({
             if (!open) resetCreateForm();
           }}
         >
-          {user?.is_admin && (
+          {canManage && (
             <DialogTrigger
               render={
                 <Button>
@@ -346,7 +348,7 @@ export default function AssignmentsSection({
                     <CardTitle className="text-base">
                       {assignment.title}
                     </CardTitle>
-                    {user?.is_admin && (
+                    {canManage && (
                       <div className="flex shrink-0 items-center gap-1">
                         <button
                           type="button"

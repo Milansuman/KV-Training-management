@@ -4,7 +4,11 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+
 from auth.utils import hash_password
+from models.program_permission import ProgramPermission
+from models.session import Session
+from models.session_permission import SessionPermission, SessionRoles
 from models.user import User
 from .schema import UserCreate, UserUpdate
 from exceptions import ConflictException, NotFoundException
@@ -133,3 +137,36 @@ async def delete_user(
     await db.commit()
     await db.refresh(db_user)
     return db_user
+
+
+async def get_user_program_permission(
+    db: AsyncSession,
+    user_id: int,
+    program_id: int,
+) -> ProgramPermission | None:
+    result = await db.scalars(
+        select(ProgramPermission)
+        .where(ProgramPermission.user_id == user_id)
+        .where(ProgramPermission.program_id == program_id)
+        .where(ProgramPermission.deleted_at.is_(None))
+    )
+    return result.first()
+
+
+async def get_user_session_roles_for_program(
+    db: AsyncSession,
+    user_id: int,
+    program_id: int,
+) -> list[tuple[Session, SessionRoles | None]]:
+    rows = await db.execute(
+        select(Session, SessionPermission.role)
+        .outerjoin(
+            SessionPermission,
+            (SessionPermission.session_id == Session.id) &
+            (SessionPermission.user_id == user_id) &
+            (SessionPermission.deleted_at.is_(None)),
+        )
+        .where(Session.program_id == program_id)
+        .where(Session.deleted_at.is_(None))
+    )
+    return [(row[0], row[1]) for row in rows.all()]

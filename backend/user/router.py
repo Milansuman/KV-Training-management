@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from auth.dependencies import get_current_user as get_current_user_dep
@@ -10,7 +10,8 @@ from user import service as user_service
 from .schema import (
     UserCreate,
     UserUpdate,
-    UserResponse
+    UserResponse,
+    UserProgramStatusResponse,
 )
 
 router = APIRouter(
@@ -83,6 +84,25 @@ async def get_user_by_id(
 
     return user
 
+
+@router.get(
+    "/{user_id}/program-status",
+    response_model=UserProgramStatusResponse,
+)
+async def get_user_program_status(
+    user_id: int,
+    program_id: int = Query(..., description="Program ID to check roles for"),
+    db: AsyncSession = Depends(get_db),
+    current_user: TokenPayload = Depends(get_current_user_dep),
+):
+    if str(user_id) != current_user.sub and not current_user.is_admin:
+        raise UnauthorizedException("Action not allowed")
+
+    return await user_service.get_user_program_status(
+        db=db,
+        user_id=user_id,
+        program_id=program_id,
+    )
 
 
 @router.patch(

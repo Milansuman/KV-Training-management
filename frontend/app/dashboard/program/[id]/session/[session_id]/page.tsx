@@ -24,9 +24,10 @@ import { toast } from "sonner";
 
 import { useGetSessionQuery } from "@/lib/api/sessions/sessions.api";
 import { useGetMyselfQuery } from "@/lib/api/user/user.api";
-import { useGetSessionUsersQuery } from "@/lib/api/session-permissions/session-permissions.api";
+import { useGetSessionUsersQuery, useAddSessionPermissionMutation } from "@/lib/api/session-permissions/session-permissions.api";
 import { useCreateFeedbackSubmissionMutation } from "@/lib/api/feedback-submissions/feedback-submissions.api";
 import type { SessionUserResponse } from "@/lib/api/session-permissions/session-permissions.type";
+import { useProgramPermissions } from "@/hooks/use-program-permissions";
 
 import TrainingMaterialsSection from "@/components/custom/session/training-materials-section";
 import AssignmentsSection from "@/components/custom/session/assignments-section";
@@ -48,7 +49,9 @@ const formatDateTime = (date: Date | string) =>
 
 export default function SessionPage() {
   const params = useParams<{ id: string; session_id: string }>();
+  const programId = Number(params.id);
   const sessionId = Number(params.session_id);
+  const perms = useProgramPermissions(programId);
 
   // ── Session data ─────────────────────────────────────────────────
   const {
@@ -61,7 +64,23 @@ export default function SessionPage() {
   // ── Session users (trainers / moderators) ────────────────────────
   const { data: sessionUsers = [] } = useGetSessionUsersQuery(sessionId);
 
+  const [addSessionPermission, { isLoading: isJoining }] =
+    useAddSessionPermissionMutation();
   const [isUsersDialogOpen, setIsUsersDialogOpen] = useState(false);
+
+  async function handleJoinSession(role: "TRAINER" | "MODERATOR") {
+    if (!user) return;
+    try {
+      await addSessionPermission({
+        user_id: user.id,
+        session_id: sessionId,
+        role,
+      }).unwrap();
+      toast.success(`You joined as ${role.toLowerCase()}!`);
+    } catch (err) {
+      toast.error(getErrorDetail(err));
+    }
+  }
 
   const { trainers, moderators } = useMemo(() => {
     const trainers: SessionUserResponse[] = [];
@@ -251,19 +270,31 @@ export default function SessionPage() {
         </div>
         <div className="flex flex-col gap-2 lg:ml-auto">
           <div className="flex flex-col gap-2 lg:flex-row">
-            <Popover>
-              <PopoverTrigger render={<Button>Join Session</Button>} />
-              <PopoverContent className="w-44" align="end">
-                <div className="flex flex-col gap-1 p-1">
-                  <Button variant="ghost" className="w-full justify-start">
-                    as moderator
-                  </Button>
-                  <Button variant="ghost" className="w-full justify-start">
-                    as trainer
-                  </Button>
-                </div>
-              </PopoverContent>
-            </Popover>
+            {user?.is_admin || perms.isStaff ? (
+              <Popover>
+                <PopoverTrigger render={<Button>Join Session</Button>} />
+                <PopoverContent className="w-44" align="end">
+                  <div className="flex flex-col gap-1 p-1">
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start"
+                      disabled={isJoining}
+                      onClick={() => handleJoinSession("MODERATOR")}
+                    >
+                      as moderator
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start"
+                      disabled={isJoining}
+                      onClick={() => handleJoinSession("TRAINER")}
+                    >
+                      as trainer
+                    </Button>
+                  </div>
+                </PopoverContent>
+              </Popover>
+            ) : null}
             <Dialog
               open={isFeedbackOpen}
               onOpenChange={(open) => {
@@ -333,11 +364,19 @@ export default function SessionPage() {
         </TabsList>
 
         <TabsContent value="training_materials">
-          <TrainingMaterialsSection sessionId={sessionId} user={user} />
+          <TrainingMaterialsSection
+            sessionId={sessionId}
+            user={user}
+            canManage={perms.canManageSessionContent(sessionId)}
+          />
         </TabsContent>
 
         <TabsContent value="assignments">
-          <AssignmentsSection sessionId={sessionId} user={user} />
+          <AssignmentsSection
+            sessionId={sessionId}
+            user={user}
+            canManage={perms.canManageSessionContent(sessionId)}
+          />
         </TabsContent>
 
         <TabsContent value="feedback">
