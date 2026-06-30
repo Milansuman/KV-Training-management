@@ -29,4 +29,6 @@ export interface ProgramProgressItem {
   completed_sessions: number;
   created_at: string;
   updated_at: string;
+  start_date: string;
+  end_date: string;
 }

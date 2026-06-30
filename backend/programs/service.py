@@ -77,6 +77,8 @@ async def get_program_progress(
             completed_sessions=completed,
             created_at=program.created_at,
             updated_at=program.updated_at,
+            start_date=program.start_date,
+            end_date=program.end_date
         ))
 
     return result

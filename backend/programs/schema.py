@@ -36,3 +36,5 @@ class ProgramProgressItem(BaseModel):
     completed_sessions: int
     created_at: datetime
     updated_at: datetime
+    start_date: date
+    end_date: date
