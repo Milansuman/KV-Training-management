@@ -87,17 +87,22 @@
 
   --radius: 0.75rem;
 
-  --sidebar: oklch(0.985 0.003 250);
-  --sidebar-foreground: var(--foreground);
+  /* Sidebar background */
+--sidebar: var(--muted);
 
-  --sidebar-primary: var(--primary);
-  --sidebar-primary-foreground: white;
+/* Text */
+--sidebar-foreground: var(--foreground);
 
-  --sidebar-accent: var(--secondary);
-  --sidebar-accent-foreground: var(--foreground);
+/* Active menu item */
+--sidebar-primary: var(--primary);
+--sidebar-primary-foreground: white;
 
-  --sidebar-border: var(--border);
-  --sidebar-ring: var(--primary);
+/* Hover */
+--sidebar-accent: color-mix(in oklch, var(--muted) 90%, white 10%);
+--sidebar-accent-foreground: var(--foreground);
+
+--sidebar-border: var(--border);
+--sidebar-ring: var(--primary);
 }
 
 .dark {
@@ -135,18 +140,17 @@
   --chart-3: oklch(0.66 0.15 264);
   --chart-4: oklch(0.56 0.10 264);
   --chart-5: oklch(0.46 0.08 264);
+  
+  --sidebar: oklch(0.22 0.01 250);
 
-  --sidebar: oklch(0.20 0.01 250);
-  --sidebar-foreground: var(--foreground);
+  --sidebar-foreground: white;
 
   --sidebar-primary: var(--primary);
-  --sidebar-primary-foreground: black;
+  --sidebar-primary-foreground: white;
 
-  --sidebar-accent: var(--secondary);
-  --sidebar-accent-foreground: var(--foreground);
+  --sidebar-accent: oklch(0.30 0.01 250);
+  --sidebar-accent-foreground: white;
 
-  --sidebar-border: var(--border);
-  --sidebar-ring: var(--primary);
 }
 
 /* FullCalendar — shadcn/nova theming
