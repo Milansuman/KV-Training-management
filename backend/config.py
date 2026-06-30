@@ -13,4 +13,10 @@ class Config(BaseSettings):
     GOOGLE_CLIENT_SECRET: str | None = None
     FRONTEND_URL: str | None = None
 
+    MINIO_ENDPOINT: str
+    MINIO_ACCESS_KEY: str
+    MINIO_SECRET_KEY: str
+    MINIO_BUCKET: str
+    MINIO_SECURE: bool = False
+
 env = Config() #type: ignore
