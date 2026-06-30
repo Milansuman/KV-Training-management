@@ -16,7 +16,7 @@ class AddSessionPermissionRequest(BaseModel):
         allowed = {r.value for r in SessionRoles}
         if isinstance(value, str) and value.upper() not in allowed:
             raise ValueError(f"Role must be one of: {', '.join(allowed)}")
-        return value
+        return SessionRoles(value)
 
 
 class SessionPermissionResponse(BaseModel):
@@ -50,7 +50,7 @@ class UpdateSessionPermissionRequest(BaseModel):
         allowed = {r.value for r in SessionRoles}
         if isinstance(value, str) and value.upper() not in allowed:
             raise ValueError(f"Role must be one of: {', '.join(allowed)}")
-        return value
+        return SessionRoles(value)
 
 
 class SessionWithRoleResponse(BaseModel):

@@ -3,8 +3,64 @@ from unittest.mock import patch, MagicMock
 from models.training_material import TrainingMaterial
 from training_materials.constants import MaterialType
 
+def authenticate_admin(client) -> None:
+    client.post(
+        "/auth/register",
+        json={
+            "username": "admin99999999",
+            "display_name": "Admin User",
+            "email": "admin@example.com",
+            "password": "secret",
+        },
+    )
+
+    response = client.post(
+        "/auth/login",
+        json={
+            "username_or_email": "admin99999999",
+            "password": "secret",
+        },
+    )
+
+    assert response.status_code == 200
+
+def authenticate_non_admin(client) -> None:
+    # First user registered gets admin, so register that one first
+    client.post(
+        "/auth/register",
+        json={
+            "username": "admin99999999",
+            "display_name": "Admin User",
+            "email": "admin@example.com",
+            "password": "secret",
+        },
+    )
+
+    # Second user registered gets non-admin
+    client.post(
+        "/auth/register",
+        json={
+            "username": "nonadmin",
+            "display_name": "Non-Admin User",
+            "email": "nonadmin@example.com",
+            "password": "secret",
+        },
+    )
+
+    # Login as the non-admin user
+    response = client.post(
+        "/auth/login",
+        json={
+            "username_or_email": "nonadmin",
+            "password": "secret",
+        },
+    )
+
+    assert response.status_code == 200
+
 
 def test_upload_material_returns_material(client) -> None:
+    authenticate_admin(client)
     with patch("training_materials.service.client") as mock_client, \
          patch("training_materials.service.env") as mock_env:
         mock_env.MINIO_BUCKET = "test-bucket"
@@ -31,6 +87,7 @@ def test_upload_material_returns_material(client) -> None:
 
 
 def test_upload_material_missing_file_returns_422(client) -> None:
+    authenticate_admin(client)
     response = client.post(
         "/training-materials",
         data={
@@ -44,6 +101,7 @@ def test_upload_material_missing_file_returns_422(client) -> None:
 
 
 def test_create_material_from_url_returns_material(client) -> None:
+    authenticate_admin(client)
     response = client.post(
         "/training-materials/url",
         data={
@@ -63,6 +121,7 @@ def test_create_material_from_url_returns_material(client) -> None:
 
 
 def test_create_material_from_url_missing_url_returns_422(client) -> None:
+    authenticate_admin(client)
     response = client.post(
         "/training-materials/url",
         data={
@@ -76,6 +135,7 @@ def test_create_material_from_url_missing_url_returns_422(client) -> None:
 
 
 def test_get_materials_returns_list(client) -> None:
+    authenticate_admin(client)
     # Create some materials first
     with patch("training_materials.service.client") as mock_client, \
          patch("training_materials.service.env") as mock_env:
@@ -113,6 +173,7 @@ def test_get_materials_returns_list(client) -> None:
 
 
 def test_get_materials_returns_empty_list_initially(client) -> None:
+    authenticate_admin(client)
     response = client.get("/training-materials")
 
     assert response.status_code == 200
@@ -120,6 +181,7 @@ def test_get_materials_returns_empty_list_initially(client) -> None:
 
 
 def test_get_materials_by_session_id_returns_matching_materials(client) -> None:
+    authenticate_admin(client)
     with patch("training_materials.service.client") as mock_client, \
          patch("training_materials.service.env") as mock_env:
         mock_env.MINIO_BUCKET = "test-bucket"
@@ -158,12 +220,14 @@ def test_get_materials_by_session_id_returns_matching_materials(client) -> None:
 
 
 def test_get_materials_by_session_id_returns_404_for_missing_session(client) -> None:
+    authenticate_admin(client)
     response = client.get("/training-materials/999")
 
     assert response.status_code == 404
 
 
 def test_update_material_with_file_returns_updated_material(client) -> None:
+    authenticate_admin(client)
     with patch("training_materials.service.client") as mock_client, \
          patch("training_materials.service.env") as mock_env, \
          patch("training_materials.service.delete_object"):
@@ -203,6 +267,7 @@ def test_update_material_with_file_returns_updated_material(client) -> None:
 
 
 def test_update_material_with_url_returns_updated_material(client) -> None:
+    authenticate_admin(client)
     with patch("training_materials.service.client") as mock_client, \
          patch("training_materials.service.env") as mock_env, \
          patch("training_materials.service.delete_object"):
@@ -241,6 +306,7 @@ def test_update_material_with_url_returns_updated_material(client) -> None:
 
 
 def test_update_material_returns_404_for_missing(client) -> None:
+    authenticate_admin(client)
     response = client.put(
         "/training-materials/999",
         data={
@@ -255,6 +321,7 @@ def test_update_material_returns_404_for_missing(client) -> None:
 
 
 def test_update_material_with_both_file_and_url_returns_400(client) -> None:
+    authenticate_admin(client)
     with patch("training_materials.service.client") as mock_client, \
          patch("training_materials.service.env") as mock_env:
         mock_env.MINIO_BUCKET = "test-bucket"
@@ -291,6 +358,7 @@ def test_update_material_with_both_file_and_url_returns_400(client) -> None:
 
 
 def test_update_material_with_no_file_or_url_returns_400(client) -> None:
+    authenticate_admin(client)
     with patch("training_materials.service.client") as mock_client, \
          patch("training_materials.service.env") as mock_env:
         mock_env.MINIO_BUCKET = "test-bucket"
@@ -323,6 +391,7 @@ def test_update_material_with_no_file_or_url_returns_400(client) -> None:
 
 
 def test_delete_material_returns_success_message(client) -> None:
+    authenticate_admin(client)
     with patch("training_materials.service.client") as mock_client, \
          patch("training_materials.service.env") as mock_env, \
          patch("training_materials.service.delete_object"):
@@ -352,12 +421,14 @@ def test_delete_material_returns_success_message(client) -> None:
 
 
 def test_delete_material_returns_404_for_missing(client) -> None:
+    authenticate_admin(client)
     response = client.delete("/training-materials/999")
 
     assert response.status_code == 404
 
 
 def test_delete_material_with_url_does_not_call_minio(client) -> None:
+    authenticate_admin(client)
     # Create URL material
     client.post(
         "/training-materials/url",
