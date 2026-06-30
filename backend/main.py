@@ -15,12 +15,11 @@ from user.router import router as user_router
 from config import env
 from program_permissions.router import router as program_permissions_router
 from programs.router import router as programs_router
-<<<<<<< HEAD
 from training_materials.router import router as training_material_router
 from storage.minio import create_bucket_if_not_exists
-=======
 from session_permissions.router import router as session_permissions_router
->>>>>>> bb5e2ce1d4ff3c8684ab9fc39bb63e6042a3acd8
+from feedback_submission.router import router as feedback_submission_router
+from feedback.router import router as feedback_router
 
 logging.basicConfig(
     level=logging.INFO,
@@ -36,7 +35,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
-    
+
 configure_middleware(app)
 
 app.add_middleware(
@@ -58,12 +57,11 @@ app.include_router(user_router)
 app.include_router(topic_router)
 app.include_router(session_router)
 app.include_router(programs_router)
-<<<<<<< HEAD
 app.include_router(training_material_router)
-=======
 app.include_router(program_permissions_router)
 app.include_router(session_permissions_router)
->>>>>>> bb5e2ce1d4ff3c8684ab9fc39bb63e6042a3acd8
+app.include_router(feedback_submission_router)
+app.include_router(feedback_router)
 
 def main():
     uvicorn.run(
