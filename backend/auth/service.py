@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import secrets
 from typing import Any
 from uuid import uuid4
@@ -19,6 +20,8 @@ from exceptions import (
     UnauthorizedException,
 )
 from models.user import User
+
+logger = logging.getLogger(__name__)
 
 
 def _build_token_claims(user: User) -> dict[str, Any]:
@@ -66,6 +69,7 @@ def _verify_google_token(id_token: str) -> dict[str, Any]:
         return dict(claims)
     except Exception as exc:
         # Map any verification error to the UnauthorizedException expected by callers
+        logger.exception("Google token verification failed...")
         raise UnauthorizedException("Invalid Google token") from exc
 
 
@@ -98,10 +102,11 @@ async def register_user(
         )
     except IntegrityError as exc:
         await db.rollback()
+        logger.exception("User already exists during registration...")
         raise ConflictException("User already exists") from exc
     except SQLAlchemyError as exc:
         await db.rollback()
-        print(exc)
+        logger.exception("Database error during user registration...")
         raise BadRequestException("Unable to register user") from exc
 
 
@@ -122,8 +127,10 @@ async def login(
             extra_claims=_build_token_claims(user)
         )
     except NoResultFound as exc:
+        logger.exception("User not found during login...")
         raise UnauthorizedException("Invalid username/email or password") from exc
     except SQLAlchemyError as exc:
+        logger.exception("Database error during login...")
         raise BadRequestException("Unable to login") from exc
 
 
@@ -154,14 +161,19 @@ async def refresh(
             extra_claims=_build_token_claims(user)
         )
     except ExpiredSignatureError as exc:
+        logger.exception("Refresh token expired...")
         raise UnauthorizedException("Refresh token expired") from exc
     except InvalidTokenError as exc:
+        logger.exception("Invalid refresh token...")
         raise UnauthorizedException("Invalid refresh token") from exc
     except ValueError as exc:
+        logger.exception("Invalid refresh token value...")
         raise UnauthorizedException("Invalid refresh token") from exc
     except NoResultFound as exc:
+        logger.exception("User not found during token refresh...")
         raise NotFoundException("User not found") from exc
     except SQLAlchemyError as exc:
+        logger.exception("Database error during token refresh...")
         raise BadRequestException("Unable to refresh token") from exc
 
 
@@ -208,12 +220,15 @@ async def google_auth(
                 )
             except IntegrityError as exc:
                 await db.rollback()
+                logger.exception("Integrity error creating Google user...")
                 raise ConflictException("Unable to create Google user") from exc
             except SQLAlchemyError as exc:
                 await db.rollback()
+                logger.exception("Database error creating Google user...")
                 raise BadRequestException("Unable to create Google user") from exc
     except SQLAlchemyError as exc:
         await db.rollback()
+        logger.exception("Database error during Google login...")
         raise BadRequestException("Unable to login with Google") from exc
 
     nonce = secrets.token_urlsafe(32)
@@ -230,8 +245,10 @@ async def google_handshake(
     try:
         user = await repository.get_user_by_nonce(db=db, nonce=nonce)
     except NoResultFound as exc:
+        logger.exception("Invalid or expired handshake nonce...")
         raise UnauthorizedException("Invalid or expired handshake nonce") from exc
     except SQLAlchemyError as exc:
+        logger.exception("Database error during Google handshake...")
         raise BadRequestException("Unable to complete Google handshake") from exc
 
     # Clear the nonce immediately — it is single-use.

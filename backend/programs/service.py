@@ -1,3 +1,4 @@
+import logging
 from datetime import date
 
 from sqlalchemy.exc import NoResultFound, SQLAlchemyError
@@ -8,6 +9,8 @@ from models.program import Program
 from models.program_permission import ProgramRoles
 from programs import repository
 from programs.schema import ProgramProgressItem
+
+logger = logging.getLogger(__name__)
 
 
 async def create_program(
@@ -21,6 +24,7 @@ async def create_program(
     try:
         user = await repository.get_user_by_id(db=db, user_id=user_id)
     except NoResultFound as exc:
+        logger.exception("User not found...")
         raise NotFoundException("User not found") from exc
 
     if not user.is_admin:
@@ -43,6 +47,7 @@ async def create_program(
         )
     except SQLAlchemyError as exc:
         await db.rollback()
+        logger.exception("Database error creating program...")
         raise BadRequestException("Unable to create program") from exc
 
     return program
@@ -55,6 +60,7 @@ async def get_program_progress(
     try:
         programs = await repository.get_programs_by_user_id(db=db, user_id=user_id)
     except SQLAlchemyError as exc:
+        logger.exception("Database error fetching programs...")
         raise BadRequestException("Unable to fetch programs") from exc
 
     result = []
@@ -87,6 +93,7 @@ async def update_program(
     try:
         program = await repository.get_program_by_id(db=db, program_id=program_id)
     except NoResultFound as exc:
+        logger.exception("Program not found during update...")
         raise NotFoundException("Program not found") from exc
 
     try:
@@ -100,6 +107,7 @@ async def update_program(
         )
     except SQLAlchemyError as exc:
         await db.rollback()
+        logger.exception("Database error updating program...")
         raise BadRequestException("Unable to update program") from exc
 
 
@@ -107,10 +115,12 @@ async def delete_program(db: AsyncSession, program_id: int) -> None:
     try:
         program = await repository.get_program_by_id(db=db, program_id=program_id)
     except NoResultFound as exc:
+        logger.exception("Program not found during delete...")
         raise NotFoundException("Program not found") from exc
 
     try:
         await repository.soft_delete_program(db=db, program=program)
     except SQLAlchemyError as exc:
         await db.rollback()
+        logger.exception("Database error deleting program...")
         raise BadRequestException("Unable to delete program") from exc

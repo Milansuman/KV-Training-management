@@ -9,7 +9,9 @@ from models.session import Session
 from sessions import repository
 # from programs import repository as program_repository
 
+import logging
 
+logger = logging.getLogger(__name__)
 async def create_session(
     db: AsyncSession,
     title: str,
@@ -58,6 +60,7 @@ async def get_session(
             session_id=session_id
         )
     except NoResultFound:
+        logger.exception("Session not found...")
         raise NotFoundException(
             "Session not found"
         )
@@ -96,6 +99,7 @@ async def update_session(
             session_id=session_id
         )
     except NoResultFound:
+        logger.exception("Session not found during update...")
         raise NotFoundException(
             "Session not found"
         )
@@ -123,6 +127,7 @@ async def delete_session(
             session_id=session_id
         )
     except NoResultFound:
+        logger.exception("Session not found during delete...")
         raise NotFoundException(
             "Session not found"
         )

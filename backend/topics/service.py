@@ -1,9 +1,12 @@
+import logging
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from exceptions import NotFoundException
 from topics import repository
 from models.topic import Topic
+
+logger = logging.getLogger(__name__)
 
 
 async def create_topic(
@@ -28,6 +31,7 @@ async def get_topic(
             topic_id=topic_id
         )
     except NoResultFound as exc:
+        logger.exception("Topic not found...")
         raise NotFoundException(
             "Topic not found"
         ) from exc
@@ -60,6 +64,7 @@ async def update_topic(
         )
 
     except NoResultFound as exc:
+        logger.exception("Topic not found during update...")
         raise NotFoundException(
             "Topic not found"
         ) from exc
@@ -82,6 +87,7 @@ async def delete_topic(
         )
 
     except NoResultFound as exc:
+        logger.exception("Topic not found during delete...")
         raise NotFoundException(
             "Topic not found"
         ) from exc

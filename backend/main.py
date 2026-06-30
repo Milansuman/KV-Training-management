@@ -1,7 +1,10 @@
+import logging
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 import uvicorn
+from middleware import configure_middleware
 import models
 from auth.router import router as auth_router
 from topics.router import router as topic_router
@@ -11,7 +14,15 @@ from user.router import router as user_router
 from config import env
 from programs.router import router as programs_router
 
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(name)s %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S"
+)
+
 app = FastAPI()
+
+configure_middleware(app)
 
 app.add_middleware(
     CORSMiddleware,
