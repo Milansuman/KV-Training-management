@@ -14,11 +14,8 @@ export const topicsApi = baseSlice.injectEndpoints({
       }),
       providesTags: (result) =>
         result
-          ? [
-              { type: "Topic" as const, id: "LIST" },
-              ...result.map(({ id }) => ({ type: "Topic" as const, id })),
-            ]
-          : [{ type: "Topic" as const, id: "LIST" }],
+          ? ["Topic", ...result.map(({ id }) => ({ type: "Topic" as const, id }))]
+          : ["Topic"],
     }),
     getTopic: builder.query<TopicResponse, number>({
       query: (topicId) => ({
@@ -33,7 +30,7 @@ export const topicsApi = baseSlice.injectEndpoints({
         method: "POST",
         body,
       }),
-      invalidatesTags: [{ type: "Topic" as const, id: "LIST" }],
+      invalidatesTags: ["Topic"],
     }),
     updateTopic: builder.mutation<TopicResponse, { topicId: number; body: TopicUpdateRequest }>({
       query: ({ topicId, body }) => ({
@@ -42,7 +39,7 @@ export const topicsApi = baseSlice.injectEndpoints({
         body,
       }),
       invalidatesTags: (result, error, { topicId }) => [
-        { type: "Topic" as const, id: "LIST" },
+        "Topic",
         { type: "Topic" as const, id: topicId },
       ],
     }),
@@ -51,7 +48,7 @@ export const topicsApi = baseSlice.injectEndpoints({
         url: `/topics/${topicId}`,
         method: "DELETE",
       }),
-      invalidatesTags: [{ type: "Topic" as const, id: "LIST" }],
+      invalidatesTags: ["Topic"],
     }),
   }),
 })

@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from user import repository as user_repo
 
-from .schema import UserCreate, UserUpdate
+from .schema import UserCreate, UserUpdate, UserProgramStatusResponse, SessionRoleInfo
 
 logger = logging.getLogger(__name__)
 
@@ -49,3 +49,34 @@ async def delete_user(id: int, db: AsyncSession):
     except Exception as exc:
         logger.exception("Error deleting user...")
         raise
+
+
+async def get_user_program_status(
+    db: AsyncSession,
+    user_id: int,
+    program_id: int,
+) -> UserProgramStatusResponse:
+    user = await user_repo.get_user_by_id(user_id, db)
+
+    program_permission = await user_repo.get_user_program_permission(
+        db, user_id, program_id
+    )
+
+    session_rows = await user_repo.get_user_session_roles_for_program(
+        db, user_id, program_id
+    )
+
+    session_roles = [
+        SessionRoleInfo(
+            session_id=session.id,
+            session_title=session.title,
+            role=role,
+        )
+        for session, role in session_rows
+    ]
+
+    return UserProgramStatusResponse(
+        is_admin=user.is_admin,
+        program_role=program_permission.role if program_permission else None,
+        session_roles=session_roles,
+    )

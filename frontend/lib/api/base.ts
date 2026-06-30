@@ -65,6 +65,6 @@ const autoRefreshBaseQuery = (): BaseQueryFn<
 export const baseSlice = createApi({
   reducerPath: 'api',
   baseQuery: autoRefreshBaseQuery(),
-  tagTypes: ['Program', 'Session', 'Topic', 'User'],
+  tagTypes: ['Program', 'Session', 'Topic', 'User', 'TrainingMaterial', 'ProgramPermission', 'SessionPermission', 'Feedback', 'FeedbackSubmission', 'Assignment', 'AssignmentSubmission'],
   endpoints: () => ({}),
 })

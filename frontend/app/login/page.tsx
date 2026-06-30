@@ -42,7 +42,7 @@ export default function LogInPage() {
   const onSubmit = async (data: LoginForm) => {
     try {
       await login(data).unwrap();
-      router.push("/");
+      router.push("/dashboard");
     } catch (e) {
       toast.error("Oops! Unable to login");
     }

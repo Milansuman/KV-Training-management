@@ -14,6 +14,7 @@ class TrainingMaterial(Entity, AccessLogMixIn):
     url: Mapped[str] = mapped_column(
         Text
     )
+    material_type: Mapped[str] = mapped_column(Text)
     session_id: Mapped[int] = mapped_column(
         ForeignKey("session.id")
     )

@@ -1,14 +1,20 @@
 from enum import Enum
+from typing import TYPE_CHECKING
 
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.schema import ForeignKey
 from sqlalchemy.types import Enum as SqlEnum
 
 from models.entity import AccessLogMixIn, Entity
 
+if TYPE_CHECKING:
+    from models.user import User
+
+
 class ProgramRoles(Enum):
     STAFF = "STAFF"
     CANDIDATE = "CANDIDATE"
+
 
 class ProgramPermission(Entity, AccessLogMixIn):
     __abstract__ = False
@@ -24,3 +30,4 @@ class ProgramPermission(Entity, AccessLogMixIn):
         SqlEnum(ProgramRoles),
         default=ProgramRoles.CANDIDATE
     )
+    user: Mapped["User"] = relationship("User", foreign_keys=[user_id], lazy="joined")

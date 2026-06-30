@@ -2,12 +2,13 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from auth.schema import TokenPayload
+from topics.schemas import TopicResponse
 from db.connection import get_db
 from auth.dependencies import get_current_user
 
 from exceptions.exceptions import UnauthorizedException
 from sessions import service
-from sessions.schemas import SessionCreateRequest, SessionResponse, SessionUpdateRequest
+from sessions.schemas import SessionCreateRequest, SessionResponse, SessionResponseWithTopics, SessionUpdateRequest
 
 
 router = APIRouter(
@@ -64,7 +65,7 @@ async def get_session(
 
 #get session by program id that is not deleted
 @router.get("/program/{program_id}",
-    response_model=list[SessionResponse]
+    response_model=list[SessionResponseWithTopics]
 )
 async def get_sessions_by_program_id(program_id: int, db: AsyncSession = Depends(get_db)):
     return await service.get_sessions_by_program_id(
@@ -116,3 +117,69 @@ async def delete_session(
     return {
         "message": "Session deleted successfully"
     }
+
+@router.post(
+    "/{session_id}/topics/{topic_id}",
+    response_model=SessionResponseWithTopics
+)
+async def assign_topic_to_session(
+    session_id: int,
+    topic_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: TokenPayload = Depends(get_current_user)
+):
+    if not current_user.is_admin:
+        raise UnauthorizedException(
+            "Action not allowed"
+        )
+
+    return await service.assign_topic_to_session(
+        db=db,
+        session_id=session_id,
+        topic_id=topic_id
+    )
+
+@router.delete(
+    "/{session_id}/topics/{topic_id}"
+)
+async def remove_topic_from_session(
+    session_id: int,
+    topic_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: TokenPayload = Depends(get_current_user)
+
+):
+    if not current_user.is_admin:
+        raise UnauthorizedException(
+            "Action not allowed"
+        )
+    await service.remove_topic_from_session(
+        db=db,
+        session_id=session_id,
+        topic_id=topic_id
+    )
+
+    return {
+        "message": "Topic removed successfully"
+    }
+
+@router.get(
+    "/{session_id}/topics",
+    response_model=list[TopicResponse]
+)
+async def get_session_topics(
+    session_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: TokenPayload = Depends(get_current_user)
+
+):
+    if not current_user.is_admin:
+        raise UnauthorizedException(
+            "Action not allowed"
+        )
+    session = await service.get_session(
+        db=db,
+        session_id=session_id
+    )
+
+    return session.topics

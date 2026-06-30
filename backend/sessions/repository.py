@@ -4,7 +4,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.session import Session
-
+from models.topic import Topic
+from sqlalchemy.orm import selectinload, with_loader_criteria
 
 async def create_session(
     db: AsyncSession,
@@ -27,6 +28,10 @@ async def get_session_by_id(
     session = (
         await db.scalars(
             select(Session)
+            .options(selectinload(Session.topics),with_loader_criteria(
+                Topic,
+                Topic.deleted_at.is_(None)
+            ))
             .where(Session.id == session_id)
             .where(Session.deleted_at.is_(None))
         )
@@ -56,6 +61,11 @@ async def get_sessions_by_program_id(program_id: int, db: AsyncSession) -> list[
             select(Session)
             .where(Session.program_id == program_id)
             .where(Session.deleted_at.is_(None))
+            .options(selectinload(Session.topics),with_loader_criteria(
+                Topic,
+                Topic.deleted_at.is_(None)
+            ))
+
         )
     ).all()
 
@@ -81,3 +91,33 @@ async def delete_session(
     session.deleted_at = datetime.now(tz=UTC)
 
     await db.commit()
+
+
+
+async def assign_topic_to_session(
+    db: AsyncSession,
+    session: Session,
+    topic: Topic
+) -> Session:
+
+    if topic not in session.topics:
+        session.topics.append(topic)
+
+    await db.commit()
+    await db.refresh(session)
+
+    return session
+
+async def remove_topic_from_session(
+    db: AsyncSession,
+    session: Session,
+    topic: Topic
+) -> Session:
+
+    if topic in session.topics:
+        session.topics.remove(topic)
+
+    await db.commit()
+    await db.refresh(session)
+
+    return session

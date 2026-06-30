@@ -1,5 +1,8 @@
 from pydantic import BaseModel, ConfigDict, EmailStr
 
+from models.program_permission import ProgramRoles
+from models.session_permission import SessionRoles
+
 
 class UserCreate(BaseModel):
     username: str
@@ -24,3 +27,15 @@ class UserResponse(BaseModel):
     display_name: str
     email: EmailStr
     is_admin: bool
+
+
+class SessionRoleInfo(BaseModel):
+    session_id: int
+    session_title: str
+    role: SessionRoles | None
+
+
+class UserProgramStatusResponse(BaseModel):
+    is_admin: bool
+    program_role: ProgramRoles | None
+    session_roles: list[SessionRoleInfo]
