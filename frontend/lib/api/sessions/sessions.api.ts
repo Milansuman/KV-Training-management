@@ -16,11 +16,8 @@ export const sessionsApi = baseSlice.injectEndpoints({
       }),
       providesTags: (result) =>
         result
-          ? [
-              { type: "Session" as const, id: "LIST" },
-              ...result.map(({ id }) => ({ type: "Session" as const, id })),
-            ]
-          : [{ type: "Session" as const, id: "LIST" }],
+          ? ["Session", ...result.map(({ id }) => ({ type: "Session" as const, id }))]
+          : ["Session"],
     }),
 
     getSession: builder.query<SessionResponse, number>({
@@ -62,15 +59,15 @@ export const sessionsApi = baseSlice.injectEndpoints({
       invalidatesTags: (result) =>
         result
           ? [
-              { type: "Session" as const, id: "LIST" },
+              "Session",
               {
                 type: "Session" as const,
                 id: `PROGRAM_${result.program_id}`,
               },
               { type: "Program" as const, id: result.program_id },
-              { type: "Program" as const, id: "LIST" },
+              "Program",
             ]
-          : [{ type: "Session" as const, id: "LIST" }],
+          : ["Session"],
     }),
 
     updateSession: builder.mutation<
@@ -85,17 +82,14 @@ export const sessionsApi = baseSlice.injectEndpoints({
       invalidatesTags: (result, error, { sessionId }) =>
         result
           ? [
-              { type: "Session" as const, id: "LIST" },
+              "Session",
               { type: "Session" as const, id: sessionId },
               {
                 type: "Session" as const,
                 id: `PROGRAM_${result.program_id}`,
               },
             ]
-          : [
-              { type: "Session" as const, id: "LIST" },
-              { type: "Session" as const, id: sessionId },
-            ],
+          : ["Session", { type: "Session" as const, id: sessionId }],
     }),
 
     deleteSession: builder.mutation<{ message: string }, number>({
@@ -104,9 +98,9 @@ export const sessionsApi = baseSlice.injectEndpoints({
         method: "DELETE",
       }),
       invalidatesTags: (result, error, sessionId) => [
-        { type: "Session" as const, id: "LIST" },
+        "Session",
         { type: "Session" as const, id: sessionId },
-        { type: "Program" as const, id: "LIST" },
+        "Program",
       ],
     }),
 
@@ -120,8 +114,8 @@ export const sessionsApi = baseSlice.injectEndpoints({
       }),
       invalidatesTags: (result, error, { sessionId }) => [
         { type: "Session" as const, id: sessionId },
-        { type: "Session" as const, id: "LIST" },
-        { type: "Topic" as const, id: "LIST" },
+        "Session",
+        "Topic",
       ],
     }),
 
@@ -135,8 +129,8 @@ export const sessionsApi = baseSlice.injectEndpoints({
       }),
       invalidatesTags: (result, error, { sessionId }) => [
         { type: "Session" as const, id: sessionId },
-        { type: "Session" as const, id: "LIST" },
-        { type: "Topic" as const, id: "LIST" },
+        "Session",
+        "Topic",
       ],
     }),
 

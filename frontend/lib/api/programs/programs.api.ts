@@ -15,11 +15,8 @@ export const programsApi = baseSlice.injectEndpoints({
       }),
       providesTags: (result) =>
         result
-          ? [
-              { type: "Program" as const, id: "LIST" },
-              ...result.map(({ id }) => ({ type: "Program" as const, id })),
-            ]
-          : [{ type: "Program" as const, id: "LIST" }],
+          ? ["Program", ...result.map(({ id }) => ({ type: "Program" as const, id }))]
+          : ["Program"],
     }),
     createProgram: builder.mutation<ProgramResponse, CreateProgramRequest>({
       query: (body) => ({
@@ -27,7 +24,7 @@ export const programsApi = baseSlice.injectEndpoints({
         method: "POST",
         body,
       }),
-      invalidatesTags: [{ type: "Program" as const, id: "LIST" }],
+      invalidatesTags: ["Program"],
     }),
     updateProgram: builder.mutation<ProgramResponse, { programId: number; body: UpdateProgramRequest }>({
       query: ({ programId, body }) => ({
@@ -36,7 +33,7 @@ export const programsApi = baseSlice.injectEndpoints({
         body,
       }),
       invalidatesTags: (result, error, { programId }) => [
-        { type: "Program" as const, id: "LIST" },
+        "Program",
         { type: "Program" as const, id: programId },
       ],
     }),
@@ -45,7 +42,7 @@ export const programsApi = baseSlice.injectEndpoints({
         url: `/programs/${programId}`,
         method: "DELETE",
       }),
-      invalidatesTags: [{ type: "Program" as const, id: "LIST" }],
+      invalidatesTags: ["Program"],
     }),
   }),
 })

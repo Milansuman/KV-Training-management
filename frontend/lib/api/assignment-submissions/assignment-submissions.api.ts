@@ -19,13 +19,13 @@ export const assignmentSubmissionsApi = baseSlice.injectEndpoints({
       invalidatesTags: (result) =>
         result
           ? [
-              { type: "AssignmentSubmission" as const, id: "LIST" },
+              "AssignmentSubmission",
               {
                 type: "AssignmentSubmission" as const,
                 id: `ASSIGNMENT_${result.assignment_id}`,
               },
             ]
-          : [{ type: "AssignmentSubmission" as const, id: "LIST" }],
+          : ["AssignmentSubmission"],
     }),
 
     getSubmissionById: builder.query<
@@ -80,10 +80,7 @@ export const assignmentSubmissionsApi = baseSlice.injectEndpoints({
       providesTags: (result, error, userId) =>
         result
           ? [
-              {
-                type: "AssignmentSubmission" as const,
-                id: `USER_${userId}`,
-              },
+              { type: "AssignmentSubmission" as const, id: `USER_${userId}` },
               ...result.map(({ id }) => ({
                 type: "AssignmentSubmission" as const,
                 id,
@@ -102,7 +99,7 @@ export const assignmentSubmissionsApi = baseSlice.injectEndpoints({
         body,
       }),
       invalidatesTags: (result, error, { submissionId }) => [
-        { type: "AssignmentSubmission" as const, id: "LIST" },
+        "AssignmentSubmission",
         { type: "AssignmentSubmission" as const, id: submissionId },
       ],
     }),
@@ -116,7 +113,7 @@ export const assignmentSubmissionsApi = baseSlice.injectEndpoints({
         method: "DELETE",
       }),
       invalidatesTags: (result, error, submissionId) => [
-        { type: "AssignmentSubmission" as const, id: "LIST" },
+        "AssignmentSubmission",
         { type: "AssignmentSubmission" as const, id: submissionId },
       ],
     }),

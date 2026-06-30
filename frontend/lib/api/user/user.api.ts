@@ -16,7 +16,7 @@ const userApi = baseSlice.injectEndpoints({
         method: "POST",
         body,
       }),
-      invalidatesTags: [{ type: "User" as const, id: "LIST" }],
+      invalidatesTags: ["User"],
     }),
 
     getAllUsers: builder.query<UserResponse[], void>({
@@ -26,11 +26,8 @@ const userApi = baseSlice.injectEndpoints({
       }),
       providesTags: (result) =>
         result
-          ? [
-              { type: "User" as const, id: "LIST" },
-              ...result.map(({ id }) => ({ type: "User" as const, id })),
-            ]
-          : [{ type: "User" as const, id: "LIST" }],
+          ? ["User", ...result.map(({ id }) => ({ type: "User" as const, id }))]
+          : ["User"],
     }),
 
     getUserById: builder.query<UserResponse, number>({
@@ -51,7 +48,7 @@ const userApi = baseSlice.injectEndpoints({
         body,
       }),
       invalidatesTags: (result, error, { id }) => [
-        { type: "User" as const, id: "LIST" },
+        "User",
         { type: "User" as const, id },
       ],
     }),
@@ -62,7 +59,7 @@ const userApi = baseSlice.injectEndpoints({
         method: "DELETE",
       }),
       invalidatesTags: (result, error, id) => [
-        { type: "User" as const, id: "LIST" },
+        "User",
         { type: "User" as const, id },
       ],
     }),

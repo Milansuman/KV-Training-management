@@ -19,13 +19,10 @@ export const assignmentsApi = baseSlice.injectEndpoints({
       invalidatesTags: (result) =>
         result
           ? [
-              { type: "Assignment" as const, id: "LIST" },
-              {
-                type: "Assignment" as const,
-                id: `SESSION_${result.session_id}`,
-              },
+              "Assignment",
+              { type: "Assignment" as const, id: `SESSION_${result.session_id}` },
             ]
-          : [{ type: "Assignment" as const, id: "LIST" }],
+          : ["Assignment"],
     }),
 
     getAllAssignments: builder.query<AssignmentResponse[], void>({
@@ -35,14 +32,8 @@ export const assignmentsApi = baseSlice.injectEndpoints({
       }),
       providesTags: (result) =>
         result
-          ? [
-              { type: "Assignment" as const, id: "LIST" },
-              ...result.map(({ id }) => ({
-                type: "Assignment" as const,
-                id,
-              })),
-            ]
-          : [{ type: "Assignment" as const, id: "LIST" }],
+          ? ["Assignment", ...result.map(({ id }) => ({ type: "Assignment" as const, id }))]
+          : ["Assignment"],
     }),
 
     getAssignmentById: builder.query<AssignmentResponse, number>({
@@ -66,14 +57,8 @@ export const assignmentsApi = baseSlice.injectEndpoints({
       providesTags: (result, error, sessionId) =>
         result
           ? [
-              {
-                type: "Assignment" as const,
-                id: `SESSION_${sessionId}`,
-              },
-              ...result.map(({ id }) => ({
-                type: "Assignment" as const,
-                id,
-              })),
+              { type: "Assignment" as const, id: `SESSION_${sessionId}` },
+              ...result.map(({ id }) => ({ type: "Assignment" as const, id })),
             ]
           : [{ type: "Assignment" as const, id: `SESSION_${sessionId}` }],
     }),
@@ -88,7 +73,7 @@ export const assignmentsApi = baseSlice.injectEndpoints({
         body,
       }),
       invalidatesTags: (result, error, { assignmentId }) => [
-        { type: "Assignment" as const, id: "LIST" },
+        "Assignment",
         { type: "Assignment" as const, id: assignmentId },
       ],
     }),
@@ -102,7 +87,7 @@ export const assignmentsApi = baseSlice.injectEndpoints({
         method: "DELETE",
       }),
       invalidatesTags: (result, error, assignmentId) => [
-        { type: "Assignment" as const, id: "LIST" },
+        "Assignment",
         { type: "Assignment" as const, id: assignmentId },
       ],
     }),

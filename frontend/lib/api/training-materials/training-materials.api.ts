@@ -22,11 +22,8 @@ export const trainingMaterialsApi = baseSlice.injectEndpoints({
       },
       invalidatesTags: (result) =>
         result
-          ? [
-              { type: "TrainingMaterial" as const, id: "LIST" },
-              { type: "TrainingMaterial" as const, id: result.session_id },
-            ]
-          : [{ type: "TrainingMaterial" as const, id: "LIST" }],
+          ? ["TrainingMaterial", { type: "TrainingMaterial" as const, id: result.session_id }]
+          : ["TrainingMaterial"],
     }),
 
     createMaterialFromUrl: builder.mutation<
@@ -48,11 +45,8 @@ export const trainingMaterialsApi = baseSlice.injectEndpoints({
       },
       invalidatesTags: (result) =>
         result
-          ? [
-              { type: "TrainingMaterial" as const, id: "LIST" },
-              { type: "TrainingMaterial" as const, id: result.session_id },
-            ]
-          : [{ type: "TrainingMaterial" as const, id: "LIST" }],
+          ? ["TrainingMaterial", { type: "TrainingMaterial" as const, id: result.session_id }]
+          : ["TrainingMaterial"],
     }),
 
     getTrainingMaterials: builder.query<TrainingMaterialResponse[], void>({
@@ -62,14 +56,8 @@ export const trainingMaterialsApi = baseSlice.injectEndpoints({
       }),
       providesTags: (result) =>
         result
-          ? [
-              { type: "TrainingMaterial" as const, id: "LIST" },
-              ...result.map(({ id }) => ({
-                type: "TrainingMaterial" as const,
-                id,
-              })),
-            ]
-          : [{ type: "TrainingMaterial" as const, id: "LIST" }],
+          ? ["TrainingMaterial", ...result.map(({ id }) => ({ type: "TrainingMaterial" as const, id }))]
+          : ["TrainingMaterial"],
     }),
 
     getTrainingMaterialsBySession: builder.query<
@@ -84,10 +72,7 @@ export const trainingMaterialsApi = baseSlice.injectEndpoints({
         result
           ? [
               { type: "TrainingMaterial" as const, id: sessionId },
-              ...result.map(({ id }) => ({
-                type: "TrainingMaterial" as const,
-                id,
-              })),
+              ...result.map(({ id }) => ({ type: "TrainingMaterial" as const, id })),
             ]
           : [{ type: "TrainingMaterial" as const, id: sessionId }],
     }),
@@ -114,7 +99,7 @@ export const trainingMaterialsApi = baseSlice.injectEndpoints({
         }
       },
       invalidatesTags: (result, error, { materialId }) => [
-        { type: "TrainingMaterial" as const, id: "LIST" },
+        "TrainingMaterial",
         { type: "TrainingMaterial" as const, id: materialId },
       ],
     }),
@@ -128,7 +113,7 @@ export const trainingMaterialsApi = baseSlice.injectEndpoints({
         method: "DELETE",
       }),
       invalidatesTags: (result, error, materialId) => [
-        { type: "TrainingMaterial" as const, id: "LIST" },
+        "TrainingMaterial",
         { type: "TrainingMaterial" as const, id: materialId },
       ],
     }),

@@ -25,9 +25,7 @@ export const programPermissionsApi = baseSlice.injectEndpoints({
                 id: permission_id,
               })),
             ]
-          : [
-              { type: "ProgramPermission" as const, id: `PROGRAM_${programId}` },
-            ],
+          : [{ type: "ProgramPermission" as const, id: `PROGRAM_${programId}` }],
     }),
 
     checkUserInProgram: builder.query<
@@ -50,9 +48,7 @@ export const programPermissionsApi = baseSlice.injectEndpoints({
         method: "POST",
         body,
       }),
-      invalidatesTags: [
-        { type: "ProgramPermission" as const, id: "LIST" },
-      ],
+      invalidatesTags: ["ProgramPermission"],
     }),
 
     removePersonFromProgram: builder.mutation<void, number>({
@@ -60,9 +56,7 @@ export const programPermissionsApi = baseSlice.injectEndpoints({
         url: `/program-permissions/${permissionId}`,
         method: "DELETE",
       }),
-      invalidatesTags: [
-        { type: "ProgramPermission" as const, id: "LIST" },
-      ],
+      invalidatesTags: ["ProgramPermission"],
     }),
   }),
 })

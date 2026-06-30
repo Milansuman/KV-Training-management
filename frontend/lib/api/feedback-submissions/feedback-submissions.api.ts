@@ -15,9 +15,7 @@ export const feedbackSubmissionsApi = baseSlice.injectEndpoints({
         method: "POST",
         body,
       }),
-      invalidatesTags: [
-        { type: "FeedbackSubmission" as const, id: "LIST" },
-      ],
+      invalidatesTags: ["FeedbackSubmission"],
     }),
   }),
 })

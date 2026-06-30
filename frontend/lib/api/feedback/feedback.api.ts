@@ -15,10 +15,7 @@ export const feedbackApi = baseSlice.injectEndpoints({
         result
           ? [
               { type: "Feedback" as const, id: sessionId },
-              ...result.map(({ id }) => ({
-                type: "Feedback" as const,
-                id,
-              })),
+              ...result.map(({ id }) => ({ type: "Feedback" as const, id })),
             ]
           : [{ type: "Feedback" as const, id: sessionId }],
     }),

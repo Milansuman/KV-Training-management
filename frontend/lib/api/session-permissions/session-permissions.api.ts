@@ -63,9 +63,7 @@ export const sessionPermissionsApi = baseSlice.injectEndpoints({
         method: "POST",
         body,
       }),
-      invalidatesTags: [
-        { type: "SessionPermission" as const, id: "LIST" },
-      ],
+      invalidatesTags: ["SessionPermission"],
     }),
 
     updateSessionPermission: builder.mutation<
@@ -78,7 +76,7 @@ export const sessionPermissionsApi = baseSlice.injectEndpoints({
         body,
       }),
       invalidatesTags: (result, error, { permissionId }) => [
-        { type: "SessionPermission" as const, id: "LIST" },
+        "SessionPermission",
         { type: "SessionPermission" as const, id: permissionId },
       ],
     }),
@@ -89,7 +87,7 @@ export const sessionPermissionsApi = baseSlice.injectEndpoints({
         method: "DELETE",
       }),
       invalidatesTags: (result, error, permissionId) => [
-        { type: "SessionPermission" as const, id: "LIST" },
+        "SessionPermission",
         { type: "SessionPermission" as const, id: permissionId },
       ],
     }),
