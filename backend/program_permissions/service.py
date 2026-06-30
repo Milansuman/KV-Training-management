@@ -48,6 +48,25 @@ async def is_user_in_program(
     return await repository.is_user_in_program(db=db, user_id=user_id, program_id=program_id)
 
 
+async def get_program_permissions(
+    db: AsyncSession,
+    program_id: int,
+) -> list[dict]:
+    permissions = await repository.get_permissions_by_program_id(
+        db=db, program_id=program_id
+    )
+    result = []
+    for perm in permissions:
+        result.append({
+            "permission_id": perm.id,
+            "user_id": perm.user_id,
+            "username": perm.user.username,
+            "display_name": perm.user.display_name,
+            "role": perm.role,
+        })
+    return result
+
+
 async def delete_permission(
     db: AsyncSession,
     permission_id: int,

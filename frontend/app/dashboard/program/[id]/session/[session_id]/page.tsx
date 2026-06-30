@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useParams } from "next/navigation";
 import {
   ExternalLink,
   File,
@@ -13,8 +14,8 @@ import {
   Eye,
   CalendarDays,
   Sparkles,
+  Loader2,
 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -51,172 +52,43 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-const users = [
-  {
-    is_admin: true,
-    name: "user1",
-  },
-  {
-    is_admin: true,
-    name: "user2",
-  },
-  {
-    is_admin: false,
-    name: "user3",
-  },
-];
+import { useGetSessionQuery } from "@/lib/api/sessions/sessions.api";
+import { useGetMyselfQuery } from "@/lib/api/user/user.api";
+import {
+  useGetTrainingMaterialsBySessionQuery,
+  useUploadTrainingMaterialMutation,
+  useCreateMaterialFromUrlMutation,
+  useUpdateTrainingMaterialMutation,
+  useDeleteTrainingMaterialMutation,
+} from "@/lib/api/training-materials/training-materials.api";
+import { useGetFeedbackSubmissionsBySessionQuery } from "@/lib/api/feedback/feedback.api";
+import { useCreateFeedbackSubmissionMutation } from "@/lib/api/feedback-submissions/feedback-submissions.api";
+import {
+  useGetAssignmentsBySessionIdQuery,
+  useCreateAssignmentMutation,
+  usePatchAssignmentMutation,
+  useDeleteAssignmentMutation,
+} from "@/lib/api/assignments/assignments.api";
+import {
+  useGetSubmissionsByAssignmentIdQuery,
+} from "@/lib/api/assignment-submissions/assignment-submissions.api";
+import type { TrainingMaterialResponse } from "@/lib/api/training-materials/training-materials.type";
+import type { AssignmentResponse } from "@/lib/api/assignments/assignments.type";
+import { toast } from "sonner";
 
-const startTime = new Date("2026-07-15T10:00:00");
-const endTime = new Date("2026-07-15T11:30:00");
+function getErrorDetail(err: unknown): string {
+  const data = (err as { data?: { detail?: string; message?: string } })?.data;
+  return data?.detail || data?.message || "An error occurred";
+}
 
-const formatDateTime = (date: Date) =>
-  date.toLocaleDateString("en-US", {
+const formatDateTime = (date: Date | string) =>
+  new Date(date).toLocaleDateString("en-US", {
     weekday: "short",
     month: "short",
     day: "numeric",
     hour: "numeric",
     minute: "2-digit",
   });
-
-interface Assignment {
-  id: number;
-  title: string;
-  description: string;
-  due_at: string;
-}
-
-interface Submission {
-  id: number;
-  user_display_name: string;
-  url: string;
-  submitted_at: string;
-}
-
-const placeholderAssignments: Assignment[] = [
-  {
-    id: 1,
-    title: "React Basics Exercise",
-    description:
-      "Build a simple counter application using React hooks. This will help you understand useState and useEffect. Make sure to handle all edge cases.",
-    due_at: "2026-07-20T23:59",
-  },
-  {
-    id: 2,
-    title: "API Integration Task",
-    description:
-      "Create a component that fetches and displays data from a REST API. Handle loading, error, and empty states gracefully.",
-    due_at: "2026-07-25T23:59",
-  },
-  {
-    id: 3,
-    title: "Final Project Proposal",
-    description:
-      "Write a brief proposal for your final project covering the tech stack, architecture, and features you plan to implement.",
-    due_at: "2026-08-01T23:59",
-  },
-];
-
-const placeholderSubmissions: Record<number, Submission[]> = {
-  1: [
-    {
-      id: 1,
-      user_display_name: "John Doe",
-      url: "https://github.com/johndoe/react-counter",
-      submitted_at: "2026-07-19T14:30:00",
-    },
-    {
-      id: 2,
-      user_display_name: "Jane Smith",
-      url: "https://github.com/janesmith/react-counter-app",
-      submitted_at: "2026-07-20T10:15:00",
-    },
-    {
-      id: 3,
-      user_display_name: "Alice Wang",
-      url: "https://github.com/alicew/use-state-counter",
-      submitted_at: "2026-07-20T18:45:00",
-    },
-  ],
-  2: [
-    {
-      id: 4,
-      user_display_name: "John Doe",
-      url: "https://github.com/johndoe/api-dashboard",
-      submitted_at: "2026-07-24T09:20:00",
-    },
-  ],
-  3: [],
-};
-
-interface FeedbackItem {
-  id: number;
-  display_name: string;
-  username: string;
-  text: string;
-}
-
-const placeholderFeedback: FeedbackItem[] = [
-  {
-    id: 1,
-    display_name: "John Doe",
-    username: "johndoe",
-    text: "The session was very informative. The trainer explained concepts clearly and the hands-on exercises were really helpful. I would have liked more time on the advanced topics though.",
-  },
-  {
-    id: 2,
-    display_name: "Jane Smith",
-    username: "janesmith",
-    text: "Great pacing and excellent examples. The training materials were well-prepared and easy to follow. The Q&A session at the end was particularly valuable.",
-  },
-  {
-    id: 3,
-    display_name: "Alice Wang",
-    username: "alicew",
-    text: "The practical exercises were engaging but the initial setup took too long. Maybe provide a pre-configured environment next time.",
-  },
-  {
-    id: 4,
-    display_name: "Bob Chen",
-    username: "bobchen",
-    text: "Really enjoyed the session! The trainer was knowledgeable and approachable. Would recommend adding more real-world examples.",
-  },
-];
-
-const aiFeedbackSummary =
-  "Overall, participants found the session well-structured and informative. The trainer's clarity and the hands-on exercises were consistently praised. Common suggestions include providing more advanced content, reducing initial setup friction, and incorporating additional real-world examples. The Q&A format was highly appreciated and should be retained.";
-
-const placeholderMaterials = [
-  {
-    id: 1,
-    title: "Course Slides",
-    type: "url" as const,
-    url: "https://example.com/course-slides",
-  },
-  {
-    id: 2,
-    title: "Reference Guide",
-    type: "file" as const,
-    filename: "reference-guide.pdf",
-  },
-  {
-    id: 3,
-    title: "Video Recording",
-    type: "url" as const,
-    url: "https://example.com/recording",
-  },
-  {
-    id: 4,
-    title: "Exercise Workbook",
-    type: "file" as const,
-    filename: "exercises.xlsx",
-  },
-  {
-    id: 5,
-    title: "Assessment Rubric",
-    type: "file" as const,
-    filename: "rubric.pdf",
-  },
-];
 
 const formatDate = (dateStr: string) =>
   new Date(dateStr).toLocaleDateString("en-US", {
@@ -237,9 +109,44 @@ const formatDateTimeLong = (dateStr: string) =>
   });
 
 export default function SessionPage() {
-  // ── Assignments state ──────────────────────────────────────────────
-  const [assignments, setAssignments] =
-    useState<Assignment[]>(placeholderAssignments);
+  const params = useParams<{ id: string; session_id: string }>();
+  const sessionId = Number(params.session_id);
+
+  // ── Session data ─────────────────────────────────────────────────
+  const {
+    data: session,
+    isLoading: sessionLoading,
+    isError: sessionError,
+  } = useGetSessionQuery(sessionId);
+  const { data: user } = useGetMyselfQuery();
+
+  // ── Training Materials ────────────────────────────────────────────
+  const { data: materials = [], isLoading: materialsLoading } =
+    useGetTrainingMaterialsBySessionQuery(sessionId);
+  const [uploadMaterial, { isLoading: isUploading }] =
+    useUploadTrainingMaterialMutation();
+  const [createFromUrl, { isLoading: isCreatingUrl }] =
+    useCreateMaterialFromUrlMutation();
+  const [updateMaterial, { isLoading: isUpdatingMaterial }] =
+    useUpdateTrainingMaterialMutation();
+  const [deleteMaterial] =
+    useDeleteTrainingMaterialMutation();
+
+  // ── Feedback ──────────────────────────────────────────────────────
+  const { data: feedbackList = [], isLoading: feedbackLoading } =
+    useGetFeedbackSubmissionsBySessionQuery(sessionId);
+  const [submitFeedback, { isLoading: isSubmittingFeedback }] =
+    useCreateFeedbackSubmissionMutation();
+
+  // ── Assignments ────────────────────────────────────────────────────
+  const { data: assignments = [], isLoading: assignmentsLoading } =
+    useGetAssignmentsBySessionIdQuery(sessionId);
+  const [createAssignment, { isLoading: isCreatingAssignment }] =
+    useCreateAssignmentMutation();
+  const [patchAssignment, { isLoading: isPatchingAssignment }] =
+    usePatchAssignmentMutation();
+  const [deleteAssignment] =
+    useDeleteAssignmentMutation();
 
   // Create dialog
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -258,9 +165,21 @@ export default function SessionPage() {
 
   // Submissions dialog
   const [isSubmissionsOpen, setIsSubmissionsOpen] = useState(false);
-  const [viewingSubmissions, setViewingSubmissions] = useState<Submission[]>(
-    [],
-  );
+  const [viewingAssignmentId, setViewingAssignmentId] = useState<
+    number | null
+  >(null);
+  const { data: viewingSubmissions = [] } =
+    useGetSubmissionsByAssignmentIdQuery(viewingAssignmentId ?? 0, {
+      skip: !viewingAssignmentId,
+    });
+
+
+  // Material add dialog
+  const [isMaterialAddOpen, setIsMaterialAddOpen] = useState(false);
+  const [materialTitle, setMaterialTitle] = useState("");
+  const [materialUrl, setMaterialUrl] = useState("");
+  const [materialFile, setMaterialFile] = useState<File | null>(null);
+  const [materialTab, setMaterialTab] = useState<"url" | "file">("url");
 
   // Material update dialog
   const [isMaterialUpdateOpen, setIsMaterialUpdateOpen] = useState(false);
@@ -274,17 +193,121 @@ export default function SessionPage() {
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
   const [feedbackText, setFeedbackText] = useState("");
 
+  const [deletingMaterialId, setDeletingMaterialId] = useState<number | null>(
+    null,
+  );
+
+  // ── Material handlers ─────────────────────────────────────────────
+
+  function resetMaterialAddForm() {
+    setMaterialTitle("");
+    setMaterialUrl("");
+    setMaterialFile(null);
+    setMaterialTab("url");
+  }
+
+  async function handleAddMaterial(e: React.FormEvent) {
+    e.preventDefault();
+    if (!materialTitle || !user) return;
+
+    try {
+      if (materialTab === "url") {
+        if (!materialUrl) {
+          toast.error("Please enter a URL.");
+          return;
+        }
+        await createFromUrl({
+          title: materialTitle,
+          url: materialUrl,
+          session_id: sessionId,
+          user_id: user.id,
+        }).unwrap();
+        toast.success("Material added successfully!");
+      } else {
+        if (!materialFile) {
+          toast.error("Please select a file.");
+          return;
+        }
+        await uploadMaterial({
+          title: materialTitle,
+          session_id: sessionId,
+          user_id: user.id,
+          file: materialFile,
+        }).unwrap();
+        toast.success("Material uploaded successfully!");
+      }
+      setIsMaterialAddOpen(false);
+      resetMaterialAddForm();
+    } catch (err) {
+      toast.error(getErrorDetail(err));
+    }
+  }
+
+  function handleEditMaterial(material: TrainingMaterialResponse) {
+    setEditingMaterialId(material.id);
+    setUpdateMaterialTitle(material.title);
+    setUpdateMaterialUrl(material.material_type === "url" ? material.url : "");
+    setIsMaterialUpdateOpen(true);
+  }
+
+  async function handleUpdateMaterial(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editingMaterialId || !updateMaterialTitle) return;
+
+    try {
+      await updateMaterial({
+        materialId: editingMaterialId,
+        title: updateMaterialTitle,
+        url: updateMaterialUrl || null,
+      }).unwrap();
+      toast.success("Material updated successfully!");
+      setIsMaterialUpdateOpen(false);
+      setEditingMaterialId(null);
+      setUpdateMaterialTitle("");
+      setUpdateMaterialUrl("");
+    } catch (err) {
+      toast.error(getErrorDetail(err));
+    }
+  }
+
+  async function handleDeleteMaterial(materialId: number) {
+    setDeletingMaterialId(materialId);
+    try {
+      await deleteMaterial(materialId).unwrap();
+      toast.success("Material deleted successfully!");
+    } catch (err) {
+      toast.error(getErrorDetail(err));
+    } finally {
+      setDeletingMaterialId(null);
+    }
+  }
+
+  // ── Feedback handlers ────────────────────────────────────────────
+
   function resetFeedbackForm() {
     setFeedbackText("");
   }
 
-  function handleSubmitFeedback(e: React.FormEvent) {
+  async function handleSubmitFeedback(e: React.FormEvent) {
     e.preventDefault();
-    if (!feedbackText.trim()) return;
-    // Placeholder: feedback would be submitted to the backend here
-    setIsFeedbackOpen(false);
-    resetFeedbackForm();
+    if (!feedbackText.trim() || !user) return;
+
+    try {
+      await submitFeedback({
+        user_id: user.id,
+        recipient_id: null,
+        feedback_id: sessionId,
+        text: feedbackText,
+      }).unwrap();
+      toast.success("Feedback submitted successfully!");
+      setIsFeedbackOpen(false);
+      resetFeedbackForm();
+    } catch (err) {
+      toast.error(getErrorDetail(err));
+    }
   }
+
+  // ── Assignment handlers (placeholder) ─────────────────────────────
 
   function resetCreateForm() {
     setNewTitle("");
@@ -299,22 +322,26 @@ export default function SessionPage() {
     setUpdateDueAt("");
   }
 
-  function handleCreate(e: React.FormEvent) {
+  async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
     if (!newTitle || !newDescription || !newDueAt) return;
 
-    const newAssignment: Assignment = {
-      id: Date.now(),
-      title: newTitle,
-      description: newDescription,
-      due_at: newDueAt,
-    };
-    setAssignments((prev) => [...prev, newAssignment]);
-    setIsCreateOpen(false);
-    resetCreateForm();
+    try {
+      await createAssignment({
+        title: newTitle,
+        description: newDescription,
+        session_id: sessionId,
+        due_at: new Date(newDueAt).toISOString(),
+      }).unwrap();
+      toast.success("Assignment created successfully!");
+      setIsCreateOpen(false);
+      resetCreateForm();
+    } catch (err) {
+      toast.error(getErrorDetail(err));
+    }
   }
 
-  function handleEdit(assignment: Assignment) {
+  function handleEdit(assignment: AssignmentResponse) {
     setEditingAssignmentId(assignment.id);
     setUpdateTitle(assignment.title);
     setUpdateDescription(assignment.description);
@@ -322,81 +349,76 @@ export default function SessionPage() {
     setIsUpdateOpen(true);
   }
 
-  function handleUpdate(e: React.FormEvent) {
+  async function handleUpdate(e: React.FormEvent) {
     e.preventDefault();
-    if (!editingAssignmentId || !updateTitle || !updateDescription || !updateDueAt) return;
+    if (
+      !editingAssignmentId ||
+      !updateTitle ||
+      !updateDescription ||
+      !updateDueAt
+    )
+      return;
 
-    setAssignments((prev) =>
-      prev.map((a) =>
-        a.id === editingAssignmentId
-          ? {
-              ...a,
-              title: updateTitle,
-              description: updateDescription,
-              due_at: updateDueAt,
-            }
-          : a,
-      ),
-    );
-    setIsUpdateOpen(false);
-    resetUpdateForm();
+    try {
+      await patchAssignment({
+        assignmentId: editingAssignmentId,
+        body: {
+          title: updateTitle,
+          description: updateDescription,
+          due_at: new Date(updateDueAt).toISOString(),
+        },
+      }).unwrap();
+      toast.success("Assignment updated successfully!");
+      setIsUpdateOpen(false);
+      resetUpdateForm();
+    } catch (err) {
+      toast.error(getErrorDetail(err));
+    }
   }
 
-  function handleDelete(id: number) {
-    setAssignments((prev) => prev.filter((a) => a.id !== id));
+  async function handleDelete(id: number) {
+    try {
+      await deleteAssignment(id).unwrap();
+      toast.success("Assignment deleted successfully!");
+    } catch (err) {
+      toast.error(getErrorDetail(err));
+    }
   }
 
   function handleViewSubmissions(assignmentId: number) {
-    setViewingSubmissions(placeholderSubmissions[assignmentId] ?? []);
+    setViewingAssignmentId(assignmentId);
     setIsSubmissionsOpen(true);
   }
 
-  function handleEditMaterial(material: (typeof placeholderMaterials)[number]) {
-    setEditingMaterialId(material.id);
-    setUpdateMaterialTitle(material.title);
-    setUpdateMaterialUrl(material.type === "url" ? material.url : "");
-    setIsMaterialUpdateOpen(true);
+  // ── Loading / error states ────────────────────────────────────────
+
+  if (sessionLoading) {
+    return (
+      <div className="flex h-[70vh] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
   }
 
-  function handleUpdateMaterial(e: React.FormEvent) {
-    e.preventDefault();
-    if (!editingMaterialId || !updateMaterialTitle) return;
-    // Placeholder: material would be updated via backend here
-    setIsMaterialUpdateOpen(false);
-    setEditingMaterialId(null);
-    setUpdateMaterialTitle("");
-    setUpdateMaterialUrl("");
+  if (sessionError || !session) {
+    return (
+      <div className="flex h-[70vh] items-center justify-center">
+        <p className="text-muted-foreground">Session not found.</p>
+      </div>
+    );
   }
 
   return (
     <div className="flex flex-col gap-8 w-full h-full px-8 pb-8">
+      {/* ── Header ───────────────────────────────────────── */}
       <div className="flex flex-col gap-4 lg:flex-row">
         <div className="flex flex-col gap-4 lg:max-w-2/3">
-          <h1 className="text-4xl text-foreground">Session Title</h1>
-          <p className="text-muted-foreground">
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
-            eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad
-            minim veniam, quis nostrud exercitation ullamco laboris nisi ut
-            aliquip ex ea commodo consequat. Duis aute irure dolor in
-            reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla
-            pariatur. Excepteur sint occaecat cupidatat non proident, sunt in
-            culpa qui officia deserunt mollit anim id est laborum.
-          </p>
+          <h1 className="text-4xl text-foreground">{session.title}</h1>
+          <p className="text-muted-foreground">{session.description}</p>
           <p className="text-sm text-muted-foreground">
-            {formatDateTime(startTime)} — {formatDateTime(endTime)}
+            {formatDateTime(session.start_datetime)} —{" "}
+            {formatDateTime(session.end_datetime)}
           </p>
-          <div className="flex flex-row gap-2 items-center flex-wrap">
-            {users.map((user) => (
-              <Badge
-                variant={user.is_admin ? "destructive" : "default"}
-                key={user.name}
-                className="text-md p-3"
-              >
-                <User size={20} />
-                {user.name}
-              </Badge>
-            ))}
-          </div>
         </div>
         <div className="flex flex-col gap-2 lg:ml-auto">
           <div className="flex flex-col gap-2 lg:flex-row">
@@ -421,10 +443,10 @@ export default function SessionPage() {
               }}
             >
               <DialogTrigger
-                render={<Button variant="outline" />}
-              >
-                Submit Feedback
-              </DialogTrigger>
+                render={
+                  <Button variant="outline">Submit Feedback</Button>
+                }
+              />
               <DialogContent className="sm:max-w-lg">
                 <form onSubmit={handleSubmitFeedback}>
                   <DialogHeader>
@@ -454,7 +476,13 @@ export default function SessionPage() {
                     >
                       Cancel
                     </Button>
-                    <Button type="submit" disabled={!feedbackText.trim()}>
+                    <Button
+                      type="submit"
+                      disabled={!feedbackText.trim() || isSubmittingFeedback}
+                    >
+                      {isSubmittingFeedback && (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      )}
                       Submit
                     </Button>
                   </DialogFooter>
@@ -464,16 +492,28 @@ export default function SessionPage() {
           </div>
         </div>
       </div>
+
+      {/* ── Tabs ──────────────────────────────────────────── */}
       <Tabs defaultValue="training_materials">
         <TabsList variant="line">
-          <TabsTrigger value="training_materials">Training Materials</TabsTrigger>
+          <TabsTrigger value="training_materials">
+            Training Materials
+          </TabsTrigger>
           <TabsTrigger value="assignments">Assignments</TabsTrigger>
           <TabsTrigger value="feedback">Feedback</TabsTrigger>
         </TabsList>
+
+        {/* ── Training Materials Tab ────────────────────────── */}
         <TabsContent value="training_materials">
           <div className="flex flex-col gap-6 mt-4">
             <div className="flex items-center justify-between">
-              <Dialog>
+              <Dialog
+                open={isMaterialAddOpen}
+                onOpenChange={(open) => {
+                  setIsMaterialAddOpen(open);
+                  if (!open) resetMaterialAddForm();
+                }}
+              >
                 <DialogTrigger
                   render={
                     <Button>
@@ -483,197 +523,278 @@ export default function SessionPage() {
                   }
                 />
                 <DialogContent className="sm:max-w-md">
-                  <DialogHeader>
-                    <DialogTitle>Add Training Material</DialogTitle>
-                    <DialogDescription>
-                      Provide a title and either a URL or upload a file.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="flex flex-col gap-4">
-                    <div className="flex flex-col gap-2">
-                      <Label>
-                        Title{" "}
-                        <span className="text-destructive">*</span>
-                      </Label>
-                      <Input placeholder="e.g. Course Slides" />
+                  <form onSubmit={handleAddMaterial}>
+                    <DialogHeader>
+                      <DialogTitle>Add Training Material</DialogTitle>
+                      <DialogDescription>
+                        Provide a title and either a URL or upload a file.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="flex flex-col gap-4 py-4">
+                      <div className="flex flex-col gap-2">
+                        <Label>
+                          Title <span className="text-destructive">*</span>
+                        </Label>
+                        <Input
+                          placeholder="e.g. Course Slides"
+                          value={materialTitle}
+                          onChange={(e) => setMaterialTitle(e.target.value)}
+                          required
+                        />
+                      </div>
+                      <Tabs
+                        value={materialTab}
+                        onValueChange={(v) =>
+                          setMaterialTab(v as "url" | "file")
+                        }
+                      >
+                        <TabsList className="w-full" variant="line">
+                          <TabsTrigger className="flex-1" value="url">
+                            URL
+                          </TabsTrigger>
+                          <TabsTrigger className="flex-1" value="file">
+                            File Upload
+                          </TabsTrigger>
+                        </TabsList>
+                        <TabsContent value="url">
+                          <Input
+                            placeholder="https://example.com/material"
+                            value={materialUrl}
+                            onChange={(e) => setMaterialUrl(e.target.value)}
+                          />
+                        </TabsContent>
+                        <TabsContent value="file">
+                          <Input
+                            type="file"
+                            onChange={(e) =>
+                              setMaterialFile(e.target.files?.[0] ?? null)
+                            }
+                          />
+                        </TabsContent>
+                      </Tabs>
                     </div>
-                    <Tabs defaultValue="url">
-                      <TabsList className="w-full" variant="line">
-                        <TabsTrigger className="flex-1" value="url">
-                          URL
-                        </TabsTrigger>
-                        <TabsTrigger className="flex-1" value="file">
-                          File Upload
-                        </TabsTrigger>
-                      </TabsList>
-                      <TabsContent value="url">
-                        <Input placeholder="https://example.com/material" />
-                      </TabsContent>
-                      <TabsContent value="file">
-                        <Input type="file" />
-                      </TabsContent>
-                    </Tabs>
-                  </div>
-                  <DialogFooter>
-                    <Button>Add Material</Button>
-                  </DialogFooter>
+                    <DialogFooter>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setIsMaterialAddOpen(false)}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        type="submit"
+                        disabled={isUploading || isCreatingUrl}
+                      >
+                        {(isUploading || isCreatingUrl) && (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        )}
+                        {materialTab === "url" ? "Add URL" : "Upload File"}
+                      </Button>
+                    </DialogFooter>
+                  </form>
                 </DialogContent>
               </Dialog>
             </div>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {placeholderMaterials.map((material) => (
-                <div key={material.id}>
-                  <Card>
-                  <CardHeader>
-                    <div className="flex items-center gap-2">
-                      {material.type === "url" ? (
-                        <Link className="size-4 shrink-0 text-muted-foreground" />
-                      ) : (
-                        <File className="size-4 shrink-0 text-muted-foreground" />
-                      )}
-                      <CardTitle>{material.title}</CardTitle>
-                    </div>
-                    <CardDescription>
-                      {material.type === "url"
-                        ? material.url
-                        : material.filename}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <span className="inline-flex items-center gap-1.5 rounded-md bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
-                      {material.type === "url" ? (
-                        <>
-                          <Link className="size-3" />
-                          URL
-                        </>
-                      ) : (
-                        <>
-                          <File className="size-3" />
-                          File
-                        </>
-                      )}
-                    </span>
-                  </CardContent>
-                  <CardFooter>
-                    {material.type === "url" ? (
-                      <Button size="sm" variant="ghost">
-                        <ExternalLink data-icon="inline-start" />
-                        Open
-                      </Button>
-                    ) : (
-                      <Button size="sm" variant="ghost">
-                        <File data-icon="inline-start" />
-                        Download
-                      </Button>
-                    )}
-                    <div className="ml-auto flex items-center gap-1">
-                      <button
-                        type="button"
-                        onClick={() => handleEditMaterial(material)}
-                        className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
-                      >
-                        <Pencil className="size-4" />
-                      </button>
-                      <button
-                        type="button"
-                        className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
-                      >
-                        <Trash2 className="size-4" />
-                      </button>
-                    </div>
-                  </CardFooter>
-                </Card>
 
-                {/* ── Update Material Dialog ────────────────── */}
-                <Dialog
-                  open={
-                    isMaterialUpdateOpen &&
-                    editingMaterialId === material.id
-                  }
-                  onOpenChange={(open) => {
-                    setIsMaterialUpdateOpen(open);
-                    if (!open) {
-                      setEditingMaterialId(null);
-                      setUpdateMaterialTitle("");
-                      setUpdateMaterialUrl("");
-                    }
-                  }}
-                >
-                  <DialogContent className="sm:max-w-md">
-                    <form onSubmit={handleUpdateMaterial}>
-                      <DialogHeader>
-                        <DialogTitle>Edit Material</DialogTitle>
-                        <DialogDescription>
-                          Update the details for this material.
-                        </DialogDescription>
-                      </DialogHeader>
-                      <div className="flex flex-col gap-4 py-4">
-                        <div className="flex flex-col gap-2">
-                          <Label htmlFor="update-mat-title">
-                            Title{" "}
-                            <span className="text-destructive">*</span>
-                          </Label>
-                          <Input
-                            id="update-mat-title"
-                            placeholder="e.g. Course Slides"
-                            value={updateMaterialTitle}
-                            onChange={(e) =>
-                              setUpdateMaterialTitle(e.target.value)
-                            }
-                            required
-                          />
-                        </div>
-                        <Tabs defaultValue="url">
-                          <TabsList className="w-full" variant="line">
-                            <TabsTrigger className="flex-1" value="url">
-                              URL
-                            </TabsTrigger>
-                            <TabsTrigger className="flex-1" value="file">
-                              File Upload
-                            </TabsTrigger>
-                          </TabsList>
-                          <TabsContent value="url">
-                            <Input
-                              placeholder="https://example.com/material"
-                              value={updateMaterialUrl}
-                              onChange={(e) =>
-                                setUpdateMaterialUrl(e.target.value)
-                              }
-                            />
-                          </TabsContent>
-                          <TabsContent value="file">
-                            <Input type="file" />
-                          </TabsContent>
-                        </Tabs>
-                      </div>
-                      <DialogFooter>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => {
-                            setIsMaterialUpdateOpen(false);
-                            setEditingMaterialId(null);
-                            setUpdateMaterialTitle("");
-                            setUpdateMaterialUrl("");
-                          }}
-                        >
-                          Cancel
-                        </Button>
-                        <Button type="submit">
-                          Update Material
-                        </Button>
-                      </DialogFooter>
-                    </form>
-                  </DialogContent>
-                </Dialog>
+            {materialsLoading ? (
+              <div className="flex items-center justify-center py-16">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
               </div>
-            ))}
-            </div>
+            ) : materials.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+                <p className="text-lg">No materials yet.</p>
+                <p className="text-sm">Add one to get started.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {materials.map((material) => (
+                  <div key={material.id}>
+                    <Card>
+                      <CardHeader>
+                        <div className="flex items-center gap-2">
+                          {material.material_type === "url" ? (
+                            <Link className="size-4 shrink-0 text-muted-foreground" />
+                          ) : (
+                            <File className="size-4 shrink-0 text-muted-foreground" />
+                          )}
+                          <CardTitle>{material.title}</CardTitle>
+                        </div>
+                        <CardDescription>
+                          {material.material_type === "url"
+                            ? material.url
+                            : material.url
+                              ? material.url.split("/").pop()
+                              : "File"}
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <span className="inline-flex items-center gap-1.5 rounded-md bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                          {material.material_type === "url" ? (
+                            <>
+                              <Link className="size-3" />
+                              URL
+                            </>
+                          ) : (
+                            <>
+                              <File className="size-3" />
+                              File
+                            </>
+                          )}
+                        </span>
+                      </CardContent>
+                      <CardFooter>
+                        {material.material_type === "url" ? (
+                          <a
+                            href={material.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            <Button size="sm" variant="ghost" type="button">
+                              <ExternalLink data-icon="inline-start" />
+                              Open
+                            </Button>
+                          </a>
+                        ) : (
+                          <a
+                            href={material.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            <Button size="sm" variant="ghost" type="button">
+                              <File data-icon="inline-start" />
+                              Download
+                            </Button>
+                          </a>
+                        )}
+                        {user?.is_admin && (
+                          <div className="ml-auto flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => handleEditMaterial(material)}
+                              className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
+                            >
+                              <Pencil className="size-4" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteMaterial(material.id)}
+                              disabled={deletingMaterialId === material.id}
+                              className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
+                            >
+                              {deletingMaterialId === material.id ? (
+                                <Loader2 className="size-4 animate-spin" />
+                              ) : (
+                                <Trash2 className="size-4" />
+                              )}
+                            </button>
+                          </div>
+                        )}
+                      </CardFooter>
+                    </Card>
+
+                    {/* ── Update Material Dialog ────────────────── */}
+                    <Dialog
+                      open={
+                        isMaterialUpdateOpen &&
+                        editingMaterialId === material.id
+                      }
+                      onOpenChange={(open) => {
+                        setIsMaterialUpdateOpen(open);
+                        if (!open) {
+                          setEditingMaterialId(null);
+                          setUpdateMaterialTitle("");
+                          setUpdateMaterialUrl("");
+                        }
+                      }}
+                    >
+                      <DialogContent className="sm:max-w-md">
+                        <form onSubmit={handleUpdateMaterial}>
+                          <DialogHeader>
+                            <DialogTitle>Edit Material</DialogTitle>
+                            <DialogDescription>
+                              Update the details for this material.
+                            </DialogDescription>
+                          </DialogHeader>
+                          <div className="flex flex-col gap-4 py-4">
+                            <div className="flex flex-col gap-2">
+                              <Label htmlFor="update-mat-title">
+                                Title{" "}
+                                <span className="text-destructive">*</span>
+                              </Label>
+                              <Input
+                                id="update-mat-title"
+                                placeholder="e.g. Course Slides"
+                                value={updateMaterialTitle}
+                                onChange={(e) =>
+                                  setUpdateMaterialTitle(e.target.value)
+                                }
+                                required
+                              />
+                            </div>
+                            <Tabs defaultValue="url">
+                              <TabsList className="w-full" variant="line">
+                                <TabsTrigger className="flex-1" value="url">
+                                  URL
+                                </TabsTrigger>
+                                <TabsTrigger className="flex-1" value="file">
+                                  File Upload
+                                </TabsTrigger>
+                              </TabsList>
+                              <TabsContent value="url">
+                                <Input
+                                  placeholder="https://example.com/material"
+                                  value={updateMaterialUrl}
+                                  onChange={(e) =>
+                                    setUpdateMaterialUrl(e.target.value)
+                                  }
+                                />
+                              </TabsContent>
+                              <TabsContent value="file">
+                                <Input
+                                  type="file"
+                                  onChange={() => {
+                                    // File update is handled separately
+                                  }}
+                                />
+                              </TabsContent>
+                            </Tabs>
+                          </div>
+                          <DialogFooter>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => {
+                                setIsMaterialUpdateOpen(false);
+                                setEditingMaterialId(null);
+                                setUpdateMaterialTitle("");
+                                setUpdateMaterialUrl("");
+                              }}
+                            >
+                              Cancel
+                            </Button>
+                            <Button
+                              type="submit"
+                              disabled={isUpdatingMaterial}
+                            >
+                              {isUpdatingMaterial && (
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              )}
+                              Update Material
+                            </Button>
+                          </DialogFooter>
+                        </form>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </TabsContent>
+
+        {/* ── Assignments Tab (placeholder — no backend yet) ── */}
         <TabsContent value="assignments">
           <div className="flex flex-col gap-6 mt-4">
-            {/* ── Header ─────────────────────────────────────────── */}
             <div className="flex items-center justify-between">
               <Dialog
                 open={isCreateOpen}
@@ -682,14 +803,16 @@ export default function SessionPage() {
                   if (!open) resetCreateForm();
                 }}
               >
-                <DialogTrigger
-                  render={
-                    <Button>
-                      <Plus data-icon="inline-start" />
-                      Create Assignment
-                    </Button>
-                  }
-                />
+                {user?.is_admin && (
+                  <DialogTrigger
+                    render={
+                      <Button>
+                        <Plus data-icon="inline-start" />
+                        Create Assignment
+                      </Button>
+                    }
+                  />
+                )}
                 <DialogContent className="sm:max-w-lg">
                   <form onSubmit={handleCreate}>
                     <DialogHeader>
@@ -746,20 +869,26 @@ export default function SessionPage() {
                       >
                         Cancel
                       </Button>
-                      <Button type="submit">Create Assignment</Button>
+                      <Button type="submit" disabled={isCreatingAssignment}>
+                        {isCreatingAssignment && (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        )}
+                        Create Assignment
+                      </Button>
                     </DialogFooter>
                   </form>
                 </DialogContent>
               </Dialog>
             </div>
 
-            {/* ── Assignment Cards ────────────────────────────────── */}
-            {assignments.length === 0 ? (
+            {assignmentsLoading ? (
+              <div className="flex items-center justify-center py-16">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : assignments.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
                 <p className="text-lg">No assignments yet.</p>
-                <p className="text-sm">
-                  Create one to get started.
-                </p>
+                <p className="text-sm">Create one to get started.</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -771,22 +900,24 @@ export default function SessionPage() {
                           <CardTitle className="text-base">
                             {assignment.title}
                           </CardTitle>
-                          <div className="flex shrink-0 items-center gap-1">
-                            <button
-                              type="button"
-                              onClick={() => handleEdit(assignment)}
-                              className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
-                            >
-                              <Pencil className="size-4" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleDelete(assignment.id)}
-                              className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
-                            >
-                              <Trash2 className="size-4" />
-                            </button>
-                          </div>
+                          {user?.is_admin && (
+                            <div className="flex shrink-0 items-center gap-1">
+                              <button
+                                type="button"
+                                onClick={() => handleEdit(assignment)}
+                                className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
+                              >
+                                <Pencil className="size-4" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDelete(assignment.id)}
+                                className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                              >
+                                <Trash2 className="size-4" />
+                              </button>
+                            </div>
+                          )}
                         </div>
                         <CardDescription className="line-clamp-3">
                           {assignment.description}
@@ -813,7 +944,6 @@ export default function SessionPage() {
                       </CardFooter>
                     </Card>
 
-                    {/* ── Update Dialog ───────────────────────────── */}
                     <Dialog
                       open={
                         isUpdateOpen &&
@@ -841,9 +971,7 @@ export default function SessionPage() {
                               <Input
                                 id="update-title"
                                 value={updateTitle}
-                                onChange={(e) =>
-                                  setUpdateTitle(e.target.value)
-                                }
+                                onChange={(e) => setUpdateTitle(e.target.value)}
                                 required
                               />
                             </div>
@@ -870,9 +998,7 @@ export default function SessionPage() {
                                 id="update-due"
                                 type="datetime-local"
                                 value={updateDueAt}
-                                onChange={(e) =>
-                                  setUpdateDueAt(e.target.value)
-                                }
+                                onChange={(e) => setUpdateDueAt(e.target.value)}
                                 required
                               />
                             </div>
@@ -888,7 +1014,10 @@ export default function SessionPage() {
                             >
                               Cancel
                             </Button>
-                            <Button type="submit">
+                            <Button type="submit" disabled={isPatchingAssignment}>
+                              {isPatchingAssignment && (
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              )}
                               Update Assignment
                             </Button>
                           </DialogFooter>
@@ -900,7 +1029,6 @@ export default function SessionPage() {
               </div>
             )}
 
-            {/* ── Submissions Dialog ───────────────────────────── */}
             <Dialog
               open={isSubmissionsOpen}
               onOpenChange={setIsSubmissionsOpen}
@@ -931,7 +1059,7 @@ export default function SessionPage() {
                           <TableCell className="font-medium">
                             <div className="flex items-center gap-2">
                               <User className="size-4 text-muted-foreground" />
-                              {sub.user_display_name}
+                              User #{sub.user_id}
                             </div>
                           </TableCell>
                           <TableCell>
@@ -950,7 +1078,7 @@ export default function SessionPage() {
                           <TableCell className="text-muted-foreground">
                             <div className="flex items-center gap-1.5">
                               <Clock className="size-3.5" />
-                              {formatDateTimeLong(sub.submitted_at)}
+                              {formatDateTimeLong(sub.created_at)}
                             </div>
                           </TableCell>
                         </TableRow>
@@ -963,9 +1091,10 @@ export default function SessionPage() {
             </Dialog>
           </div>
         </TabsContent>
+
+        {/* ── Feedback Tab ──────────────────────────────────── */}
         <TabsContent value="feedback">
           <div className="flex flex-col gap-6 mt-4">
-            {/* ── AI Summary Region ──────────────────────────── */}
             <div className="flex flex-col items-center gap-3 py-6 text-center">
               <div className="flex size-10 items-center justify-center rounded-full bg-primary/10">
                 <Sparkles className="size-5 text-primary" />
@@ -973,13 +1102,22 @@ export default function SessionPage() {
               <h3 className="text-lg font-semibold text-foreground">
                 What are trainees saying about your session?
               </h3>
-              <p className="max-w-2xl text-sm text-left leading-relaxed text-foreground/70">
-                {aiFeedbackSummary}
-              </p>
+              {feedbackLoading ? (
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              ) : (
+                <p className="max-w-2xl text-sm text-left leading-relaxed text-foreground/70">
+                  {feedbackList.length > 0
+                    ? `${feedbackList.length} feedback submission(s) received.`
+                    : "No feedback yet. Be the first to share your thoughts!"}
+                </p>
+              )}
             </div>
 
-            {/* ── Feedback Cards ───────────────────────────────── */}
-            {placeholderFeedback.length === 0 ? (
+            {feedbackLoading ? (
+              <div className="flex items-center justify-center py-16">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : feedbackList.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
                 <p className="text-lg">No feedback yet.</p>
                 <p className="text-sm">
@@ -988,7 +1126,7 @@ export default function SessionPage() {
               </div>
             ) : (
               <div className="flex flex-col gap-4 lg:flex-row lg:max-[600px]">
-                {placeholderFeedback.map((fb) => (
+                {feedbackList.map((fb) => (
                   <Card key={fb.id}>
                     <CardHeader>
                       <div className="flex items-center gap-2.5">
@@ -997,10 +1135,10 @@ export default function SessionPage() {
                         </div>
                         <div className="flex flex-col">
                           <CardTitle className="text-sm font-medium">
-                            {fb.display_name}
+                            User #{fb.user_id}
                           </CardTitle>
                           <CardDescription className="text-xs">
-                            @{fb.username}
+                            {formatDateTimeLong(fb.submitted_at)}
                           </CardDescription>
                         </div>
                       </div>

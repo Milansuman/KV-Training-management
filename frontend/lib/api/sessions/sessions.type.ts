@@ -21,3 +21,12 @@ export interface SessionResponse {
   end_datetime: string;
   program_id: number;
 }
+
+export interface TopicResponse {
+  id: number;
+  title: string;
+}
+
+export interface SessionResponseWithTopics extends SessionResponse {
+  topics: TopicResponse[];
+}

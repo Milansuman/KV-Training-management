@@ -10,11 +10,11 @@ class AddPersonRequest(BaseModel):
 
     @field_validator("role", mode="before")
     @classmethod
-    def validate_role(cls, value: str) -> ProgramRoles:
+    def validate_role(cls, value: object) -> ProgramRoles:
         allowed = {r.value for r in ProgramRoles}
         if isinstance(value, str) and value.upper() not in allowed:
             raise ValueError(f"Role must be one of: {', '.join(allowed)}")
-        return value
+        return value  # type: ignore[return-value]
 
 
 class ProgramPermissionResponse(BaseModel):
@@ -28,3 +28,14 @@ class ProgramPermissionResponse(BaseModel):
 
 class UserInProgramResponse(BaseModel):
     is_member: bool
+
+
+class ProgramPermissionUserResponse(BaseModel):
+    """Permission response with the user's display info included."""
+    model_config = ConfigDict(from_attributes=True)
+
+    permission_id: int
+    user_id: int
+    username: str
+    display_name: str
+    role: ProgramRoles

@@ -131,7 +131,9 @@ export function EventCalendar({ className, programId }: EventCalendarProps) {
         description: session.description,
         program_id: session.program_id,
         session_id: session.id,
-        topics: [], // backend does not store topics for sessions directly in create/update endpoint payload yet
+        topics: "topics" in session && Array.isArray((session as any).topics)
+          ? (session as any).topics.map((t: any) => t.title)
+          : [],
       },
     }));
   }, [dbSessions]);

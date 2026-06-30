@@ -83,3 +83,15 @@ async def create_permission(
     db.add(permission)
     await db.commit()
     return permission
+
+
+async def get_permissions_by_program_id(
+    db: AsyncSession,
+    program_id: int,
+) -> list[ProgramPermission]:
+    result = await db.scalars(
+        select(ProgramPermission)
+        .where(ProgramPermission.program_id == program_id)
+        .where(ProgramPermission.deleted_at.is_(None))
+    )
+    return list(result.all())

@@ -14,12 +14,14 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
+import { useGetMyselfQuery } from "@/lib/api/user/user.api";
 
 import { CalendarClock, Users } from "lucide-react";
 import { usePathname } from "next/navigation";
 
-export default function DashboardSidebar({ programId, is_admin }: { programId: string,is_admin: boolean }) {
+export default function DashboardSidebar({ programId}: { programId: string}) {
   const pathname = usePathname();
+  const { data: user_details, isLoading: userLoading } = useGetMyselfQuery();
 
   return (
     <Sidebar>
@@ -46,7 +48,7 @@ export default function DashboardSidebar({ programId, is_admin }: { programId: s
                 </SidebarMenuButton>
               </SidebarMenuItem>
 
-              {is_admin&& <SidebarMenuItem>
+              {user_details?.is_admin && <SidebarMenuItem>
                 <SidebarMenuButton
                   className="h-12 w-full rounded-lg px-3 data-[active=true]:bg-primary/70 data-[active=true]:text-primary-foreground"
                   isActive={pathname.endsWith("/users")}

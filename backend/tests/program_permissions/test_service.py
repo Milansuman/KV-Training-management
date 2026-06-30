@@ -6,7 +6,12 @@ from datetime import date
 from auth.service import register_user
 from exceptions import ConflictException, NotFoundException
 from models.program_permission import ProgramRoles
-from program_permissions.service import add_person_to_program, delete_permission, is_user_in_program
+from program_permissions.service import (
+    add_person_to_program,
+    delete_permission,
+    get_program_permissions,
+    is_user_in_program,
+)
 from programs.service import create_program
 
 
@@ -153,6 +158,81 @@ async def test_is_user_in_program_returns_false_for_unknown_user(db_session) -> 
     result = await is_user_in_program(db=db_session, user_id=99999, program_id=program.id)
 
     assert result is False
+
+
+# ---------------------------------------------------------------------------
+# get_program_permissions
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_get_program_permissions_returns_members(db_session) -> None:
+    admin = await _make_admin(db_session)
+    program = await _make_program(db_session, admin.id)
+    member = await _make_user(db_session, "member1", "m1@example.com")
+    member2 = await _make_user(db_session, "member2", "m2@example.com")
+
+    await add_person_to_program(
+        db=db_session, user_id=member.id, program_id=program.id, role=ProgramRoles.CANDIDATE
+    )
+    await add_person_to_program(
+        db=db_session, user_id=member2.id, program_id=program.id, role=ProgramRoles.STAFF
+    )
+
+    permissions = await get_program_permissions(db=db_session, program_id=program.id)
+
+    # admin is auto-added by create_program, plus member + member2
+    assert len(permissions) == 3
+
+    permission_map = {p["user_id"]: p for p in permissions}
+    assert permission_map[member.id]["username"] == "member1"
+    assert permission_map[member.id]["role"] == ProgramRoles.CANDIDATE
+    assert permission_map[member2.id]["role"] == ProgramRoles.STAFF
+    assert permission_map[admin.id]["role"] == ProgramRoles.STAFF
+
+
+@pytest.mark.asyncio
+async def test_get_program_permissions_empty_program(db_session) -> None:
+    """A program with no explicit permissions (other than the creator's) should
+    still return at least the creator's permission."""
+    admin = await _make_admin(db_session)
+    program = await _make_program(db_session, admin.id)
+
+    permissions = await get_program_permissions(db=db_session, program_id=program.id)
+
+    assert len(permissions) == 1
+    assert permissions[0]["user_id"] == admin.id
+
+
+@pytest.mark.asyncio
+async def test_get_program_permissions_excludes_deleted(db_session) -> None:
+    admin = await _make_admin(db_session)
+    program = await _make_program(db_session, admin.id)
+    member = await _make_user(db_session)
+
+    perm = await add_person_to_program(
+        db=db_session, user_id=member.id, program_id=program.id, role=ProgramRoles.CANDIDATE
+    )
+    await delete_permission(db=db_session, permission_id=perm.id)
+
+    permissions = await get_program_permissions(db=db_session, program_id=program.id)
+
+    assert len(permissions) == 1  # only the creator remains
+    assert permissions[0]["user_id"] == admin.id
+
+
+@pytest.mark.asyncio
+async def test_get_program_permissions_returns_user_info(db_session) -> None:
+    admin = await _make_admin(db_session)
+    program = await _make_program(db_session, admin.id)
+
+    permissions = await get_program_permissions(db=db_session, program_id=program.id)
+
+    perm = permissions[0]
+    assert "permission_id" in perm
+    assert "user_id" in perm
+    assert "username" in perm
+    assert "display_name" in perm
+    assert "role" in perm
 
 
 # ---------------------------------------------------------------------------

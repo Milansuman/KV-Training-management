@@ -2,10 +2,28 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.connection import get_db
-from program_permissions.schema import AddPersonRequest, ProgramPermissionResponse, UserInProgramResponse
-from program_permissions.service import add_person_to_program, delete_permission, is_user_in_program
+from program_permissions.schema import (
+    AddPersonRequest,
+    ProgramPermissionResponse,
+    ProgramPermissionUserResponse,
+    UserInProgramResponse,
+)
+from program_permissions.service import (
+    add_person_to_program,
+    delete_permission,
+    get_program_permissions,
+    is_user_in_program,
+)
 
 router = APIRouter(prefix="/program-permissions", tags=["program-permissions"])
+
+
+@router.get("/program/{program_id}", response_model=list[ProgramPermissionUserResponse])
+async def list_program_permissions(
+    program_id: int,
+    db: AsyncSession = Depends(get_db),
+):
+    return await get_program_permissions(db=db, program_id=program_id)
 
 
 @router.get("/check", response_model=UserInProgramResponse)

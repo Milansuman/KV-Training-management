@@ -202,3 +202,94 @@ def test_check_returns_false_for_unknown_user(client) -> None:
 
     assert response.status_code == 200
     assert response.json()["is_member"] is False
+
+
+# ---------------------------------------------------------------------------
+# GET /program-permissions/program/{program_id}
+# ---------------------------------------------------------------------------
+
+def test_list_permissions_returns_200_with_members(client) -> None:
+    user_id, token = _setup_admin(client)
+    program_id = _create_program(client, token)
+
+    member = client.post("/auth/register", json={
+        "username": "member", "email": "member@example.com",
+        "display_name": "Member", "password": "secret",
+    }).json()
+
+    client.post("/program-permissions", json={
+        "user_id": member["id"], "program_id": program_id, "role": "CANDIDATE",
+    })
+
+    response = client.get(f"/program-permissions/program/{program_id}")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 2  # admin + member
+
+
+def test_list_permissions_includes_user_info(client) -> None:
+    user_id, token = _setup_admin(client)
+    program_id = _create_program(client, token)
+
+    response = client.get(f"/program-permissions/program/{program_id}")
+
+    assert response.status_code == 200
+    perm = response.json()[0]
+    assert "permission_id" in perm
+    assert "user_id" in perm
+    assert "username" in perm
+    assert "display_name" in perm
+    assert "role" in perm
+
+
+def test_list_permissions_excludes_deleted(client) -> None:
+    user_id, token = _setup_admin(client)
+    program_id = _create_program(client, token)
+
+    member = client.post("/auth/register", json={
+        "username": "member", "email": "member@example.com",
+        "display_name": "Member", "password": "secret",
+    }).json()
+
+    perm_resp = client.post("/program-permissions", json={
+        "user_id": member["id"], "program_id": program_id, "role": "CANDIDATE",
+    })
+    permission_id = perm_resp.json()["id"]
+
+    # Delete the permission
+    client.delete(f"/program-permissions/{permission_id}")
+
+    response = client.get(f"/program-permissions/program/{program_id}")
+
+    assert response.status_code == 200
+    assert len(response.json()) == 1  # only admin remains
+
+
+def test_list_permissions_empty_for_nonexistent_program(client) -> None:
+    response = client.get("/program-permissions/program/99999")
+
+    assert response.status_code == 200
+    assert response.json() == []
+
+
+def test_list_permissions_correct_roles(client) -> None:
+    user_id, token = _setup_admin(client)
+    program_id = _create_program(client, token)
+
+    member = client.post("/auth/register", json={
+        "username": "member", "email": "member@example.com",
+        "display_name": "Member", "password": "secret",
+    }).json()
+
+    client.post("/program-permissions", json={
+        "user_id": member["id"], "program_id": program_id, "role": "CANDIDATE",
+    })
+
+    response = client.get(f"/program-permissions/program/{program_id}")
+
+    assert response.status_code == 200
+    data = response.json()
+    roles = {p["username"]: p["role"] for p in data}
+    assert roles["admin"] == "STAFF"
+    assert roles["member"] == "CANDIDATE"
