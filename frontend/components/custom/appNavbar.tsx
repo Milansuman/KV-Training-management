@@ -5,6 +5,7 @@ import { Menu, X } from "lucide-react";
 import { useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useGetMyselfQuery } from "@/lib/api/user/user.api";
+import { useRouter } from "next/navigation";
 
 export default function AppNavbar() {
   const [open, setOpen] = useState(false);
@@ -19,29 +20,29 @@ export default function AppNavbar() {
 
   const displayName = user_details?.display_name || user_details?.username || "Loading...";
   const initials = getInitials(displayName);
+  const router = useRouter();
 
+  function handleAvatarClick()
+  {
+    router.push(`/dashboard/profile/${user_details?.id}`)
+  }
   return (
     <header className="fixed top-0 left-0 z-50 w-full border-b border-border bg-background/80 backdrop-blur-md">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
+      <div className="flex h-16 w-full  items-center justify-between px-6">
 
         {/* App Name */}
-        <Link
-          href="/"
-          className="text-xl font-bold tracking-wide font-quicksand "
-        >
-          Train3
-        </Link>
+        <p className="shrink-0 text-xl font-bold tracking-wide font-quicksand">Train3</p>
 
         {/* Desktop Profile */}
-        <div className="hidden md:flex items-center gap-3">
+        <div className=" hidden items-center gap-3 md:flex">
 
-          <span className="text-md font-medium font-quicksand ">
+          <span className="text-md font-medium font-quicksand">
             {displayName}
           </span>
 
-          <Avatar className="h-10 w-10 cursor-pointer font-quicksand ">
+          <Avatar className="h-10 w-10 cursor-pointer font-quicksand" onClick={handleAvatarClick}>
             <AvatarImage src="/avatar.png" />
-            <AvatarFallback>{initials}</AvatarFallback>
+            <AvatarFallback >{initials}</AvatarFallback>
           </Avatar>
 
         </div>

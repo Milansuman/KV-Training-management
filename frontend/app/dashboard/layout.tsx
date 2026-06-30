@@ -1,6 +1,6 @@
 "use client";
 
-import AppNavbar from "../../components/ui/appNavbar";
+import AppNavbar from "../../components/custom/appNavbar";
 import { useGetMyselfQuery } from "@/lib/api/user/user.api";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
