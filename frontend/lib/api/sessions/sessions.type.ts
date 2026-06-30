@@ -20,6 +20,7 @@ export interface SessionResponse {
   start_datetime: string;
   end_datetime: string;
   program_id: number;
+  feedback_id: number | null;
 }
 
 export interface TopicResponse {

@@ -29,6 +29,7 @@ class SessionResponse(BaseModel):
     end_datetime: datetime
 
     program_id: int
+    feedback_id: int | None = None
 
 class SessionResponseWithTopics(SessionResponse):
     model_config = ConfigDict(from_attributes=True)

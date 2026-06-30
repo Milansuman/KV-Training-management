@@ -26,16 +26,6 @@ async def create_session(
             "end_datetime must be after start_datetime"
         )
 
-    # try:
-    #     await program_repository.get_program_by_id(
-    #         db=db,
-    #         program_id=program_id
-    #     )
-    # except NoResultFound:
-    #     raise NotFoundException(
-    #         "Program not found"
-    #     )
-
     session = Session(
         title=title,
         description=description,
@@ -44,10 +34,21 @@ async def create_session(
         program_id=program_id
     )
 
-    return await repository.create_session(
+    created_session = await repository.create_session(
         db=db,
         session=session
     )
+
+    # Create a feedback entry for this session
+    from feedback.service import create_feedback as create_feedback_service
+    feedback = await create_feedback_service(
+        db=db,
+        session_id=created_session.id
+    )
+
+    created_session.feedback_id = feedback.id
+
+    return created_session
 
 #get session by session id that is not deleted
 async def get_session(
@@ -56,10 +57,21 @@ async def get_session(
 ):
 
     try:
-        return await repository.get_session_by_id(
+        session = await repository.get_session_by_id(
             db=db,
             session_id=session_id
         )
+
+        # Attach feedback_id from the associated feedback record
+        from feedback.service import get_feedback_by_session_id
+        feedback = await get_feedback_by_session_id(
+            db=db,
+            session_id=session_id
+        )
+        if feedback:
+            session.feedback_id = feedback.id
+
+        return session
     except NoResultFound:
         logger.exception("Session not found...")
         raise NotFoundException(
@@ -70,16 +82,40 @@ async def get_session(
 async def get_sessions(
     db: AsyncSession
 ):
-    return await repository.get_sessions(
+    sessions = await repository.get_sessions(
         db=db
     )
 
+    # Attach feedback_id for each session
+    from feedback.service import get_feedback_by_session_id
+    for session in sessions:
+        feedback = await get_feedback_by_session_id(
+            db=db,
+            session_id=session.id
+        )
+        if feedback:
+            session.feedback_id = feedback.id
+
+    return sessions
+
 #get all sessions by program id that is not deleted
 async def get_sessions_by_program_id(program_id: int, db: AsyncSession):
-    return await repository.get_sessions_by_program_id(
+    sessions = await repository.get_sessions_by_program_id(
         db=db,
         program_id=program_id
     )
+
+    # Attach feedback_id for each session
+    from feedback.service import get_feedback_by_session_id
+    for session in sessions:
+        feedback = await get_feedback_by_session_id(
+            db=db,
+            session_id=session.id
+        )
+        if feedback:
+            session.feedback_id = feedback.id
+
+    return sessions
 
 async def update_session(
     db: AsyncSession,

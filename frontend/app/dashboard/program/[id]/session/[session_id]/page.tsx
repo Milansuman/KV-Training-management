@@ -71,6 +71,7 @@ import {
 } from "@/lib/api/assignments/assignments.api";
 import {
   useGetSubmissionsByAssignmentIdQuery,
+  useCreateSubmissionMutation,
 } from "@/lib/api/assignment-submissions/assignment-submissions.api";
 import type { TrainingMaterialResponse } from "@/lib/api/training-materials/training-materials.type";
 import type { AssignmentResponse } from "@/lib/api/assignments/assignments.type";
@@ -163,7 +164,7 @@ export default function SessionPage() {
   const [updateDescription, setUpdateDescription] = useState("");
   const [updateDueAt, setUpdateDueAt] = useState("");
 
-  // Submissions dialog
+  // Submissions dialog (view)
   const [isSubmissionsOpen, setIsSubmissionsOpen] = useState(false);
   const [viewingAssignmentId, setViewingAssignmentId] = useState<
     number | null
@@ -172,6 +173,15 @@ export default function SessionPage() {
     useGetSubmissionsByAssignmentIdQuery(viewingAssignmentId ?? 0, {
       skip: !viewingAssignmentId,
     });
+
+  // Create submission dialog
+  const [isCreateSubmissionOpen, setIsCreateSubmissionOpen] = useState(false);
+  const [submitAssignmentId, setSubmitAssignmentId] = useState<number | null>(
+    null,
+  );
+  const [newSubmissionUrl, setNewSubmissionUrl] = useState("");
+  const [createSubmission, { isLoading: isCreatingSubmission }] =
+    useCreateSubmissionMutation();
 
 
   // Material add dialog
@@ -290,13 +300,13 @@ export default function SessionPage() {
 
   async function handleSubmitFeedback(e: React.FormEvent) {
     e.preventDefault();
-    if (!feedbackText.trim() || !user) return;
+    if (!feedbackText.trim() || !user || !session?.feedback_id) return;
 
     try {
       await submitFeedback({
         user_id: user.id,
         recipient_id: null,
-        feedback_id: sessionId,
+        feedback_id: session.feedback_id,
         text: feedbackText,
       }).unwrap();
       toast.success("Feedback submitted successfully!");
@@ -388,6 +398,34 @@ export default function SessionPage() {
   function handleViewSubmissions(assignmentId: number) {
     setViewingAssignmentId(assignmentId);
     setIsSubmissionsOpen(true);
+  }
+
+  function resetCreateSubmissionForm() {
+    setSubmitAssignmentId(null);
+    setNewSubmissionUrl("");
+  }
+
+  function handleOpenCreateSubmission(assignmentId: number) {
+    setSubmitAssignmentId(assignmentId);
+    setIsCreateSubmissionOpen(true);
+  }
+
+  async function handleCreateSubmission(e: React.FormEvent) {
+    e.preventDefault();
+    if (!submitAssignmentId || !newSubmissionUrl || !user) return;
+
+    try {
+      await createSubmission({
+        url: newSubmissionUrl,
+        user_id: user.id,
+        assignment_id: submitAssignmentId,
+      }).unwrap();
+      toast.success("Submission created successfully!");
+      setIsCreateSubmissionOpen(false);
+      resetCreateSubmissionForm();
+    } catch (err) {
+      toast.error(getErrorDetail(err));
+    }
   }
 
   // ── Loading / error states ────────────────────────────────────────
@@ -929,7 +967,17 @@ export default function SessionPage() {
                           <span>Due {formatDate(assignment.due_at)}</span>
                         </div>
                       </CardContent>
-                      <CardFooter>
+                      <CardFooter className="flex-col gap-2">
+                        <Button
+                          size="sm"
+                          className="w-full"
+                          onClick={() =>
+                            handleOpenCreateSubmission(assignment.id)
+                          }
+                        >
+                          <Plus data-icon="inline-start" />
+                          Submit
+                        </Button>
                         <Button
                           size="sm"
                           variant="secondary"
@@ -1019,6 +1067,68 @@ export default function SessionPage() {
                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                               )}
                               Update Assignment
+                            </Button>
+                          </DialogFooter>
+                        </form>
+                      </DialogContent>
+                    </Dialog>
+
+                    {/* ── Create Submission Dialog ──────────────── */}
+                    <Dialog
+                      open={
+                        isCreateSubmissionOpen &&
+                        submitAssignmentId === assignment.id
+                      }
+                      onOpenChange={(open) => {
+                        setIsCreateSubmissionOpen(open);
+                        if (!open) resetCreateSubmissionForm();
+                      }}
+                    >
+                      <DialogContent className="sm:max-w-md">
+                        <form onSubmit={handleCreateSubmission}>
+                          <DialogHeader>
+                            <DialogTitle>Submit Assignment</DialogTitle>
+                            <DialogDescription>
+                              Provide the URL of your completed work to submit it.
+                            </DialogDescription>
+                          </DialogHeader>
+                          <div className="grid gap-4 py-4">
+                            <div className="grid gap-2">
+                              <Label htmlFor="sub-url">
+                                Submission URL{" "}
+                                <span className="text-destructive">*</span>
+                              </Label>
+                              <Input
+                                id="sub-url"
+                                type="url"
+                                placeholder="https://github.com/user/repo"
+                                value={newSubmissionUrl}
+                                onChange={(e) =>
+                                  setNewSubmissionUrl(e.target.value)
+                                }
+                                required
+                              />
+                            </div>
+                          </div>
+                          <DialogFooter>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => {
+                                setIsCreateSubmissionOpen(false);
+                                resetCreateSubmissionForm();
+                              }}
+                            >
+                              Cancel
+                            </Button>
+                            <Button
+                              type="submit"
+                              disabled={isCreatingSubmission}
+                            >
+                              {isCreatingSubmission && (
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              )}
+                              Submit
                             </Button>
                           </DialogFooter>
                         </form>
@@ -1125,9 +1235,9 @@ export default function SessionPage() {
                 </p>
               </div>
             ) : (
-              <div className="flex flex-col gap-4 lg:flex-row lg:max-[600px]">
+              <div className="flex flex-col gap-4 lg:flex-row lg:max-w-[600px]">
                 {feedbackList.map((fb) => (
-                  <Card key={fb.id}>
+                  <Card key={fb.id} className="min-w-[300px]">
                     <CardHeader>
                       <div className="flex items-center gap-2.5">
                         <div className="flex size-9 items-center justify-center rounded-full bg-muted">

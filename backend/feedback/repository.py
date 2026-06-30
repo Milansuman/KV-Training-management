@@ -5,6 +5,28 @@ from models.feedback import Feedback
 from models.feedback_submission import FeedbackSubmission
 
 
+async def create_feedback(
+    db: AsyncSession,
+    feedback: Feedback
+) -> Feedback:
+    db.add(feedback)
+    await db.commit()
+    await db.refresh(feedback)
+    return feedback
+
+
+async def get_feedback_by_session_id(
+    db: AsyncSession,
+    session_id: int
+) -> Feedback | None:
+    result = await db.scalars(
+        select(Feedback)
+        .where(Feedback.session_id == session_id)
+        .where(Feedback.deleted_at.is_(None))
+    )
+    return result.first()
+
+
 async def get_submissions_by_session_id(
     db: AsyncSession,
     session_id: int
