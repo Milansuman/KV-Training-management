@@ -2,9 +2,9 @@ from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.schema import ForeignKey
 from sqlalchemy.types import Text
 
-from models.entity import Entity
+from models.entity import AccessLogMixIn, Entity
 
-class TrainingMaterial(Entity):
+class TrainingMaterial(Entity, AccessLogMixIn):
     __abstract__ = False
     __tablename__ = "training_material"
 

@@ -4,14 +4,14 @@ from typing import TYPE_CHECKING
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.types import Date, Text
 
-from models.entity import Entity
+from models.entity import AccessLogMixIn, Entity
 
 if TYPE_CHECKING:
     from models.session import Session
 else:
     Session = "Session"
 
-class Program(Entity):
+class Program(Entity, AccessLogMixIn):
     __abstract__ = False
     __tablename__ = "program"
 
