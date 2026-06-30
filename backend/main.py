@@ -13,6 +13,8 @@ from exceptions.handler import register_exception_handlers
 from user.router import router as user_router
 from config import env
 from programs.router import router as programs_router
+from feedback_submission.router import router as feedback_submission_router
+from feedback.router import router as feedback_router
 
 logging.basicConfig(
     level=logging.INFO,
@@ -43,6 +45,8 @@ app.include_router(user_router)
 app.include_router(topic_router)
 app.include_router(session_router)
 app.include_router(programs_router)
+app.include_router(feedback_submission_router)
+app.include_router(feedback_router)
 
 def main():
     uvicorn.run(
