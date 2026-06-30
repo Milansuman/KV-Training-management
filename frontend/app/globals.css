@@ -1,0 +1,430 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-quicksand: var(--font-quicksand);
+  --font-heading: var(--font-geist-sans);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+:root {
+  --background: oklch(0.98 0.003 250);
+  --foreground: oklch(0.18 0.01 250);
+
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.18 0.01 250);
+
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.18 0.01 250);
+
+  /* Main Brand Color (#2757ff) */
+  --primary: #2757ff;
+  --primary-foreground: oklch(1 0 0);
+
+  --secondary: oklch(0.95 0.01 250);
+  --secondary-foreground: oklch(0.18 0.01 250);
+
+  --muted: oklch(0.94 0.01 250);
+  --muted-foreground: oklch(0.50 0.02 250);
+
+  --accent: oklch(0.94 0.01 250);
+  --accent-foreground: oklch(0.18 0.01 250);
+
+  --destructive: oklch(0.62 0.24 27);
+
+  --border: oklch(0.90 0.01 250);
+  --input: oklch(0.90 0.01 250);
+
+  --ring: var(--primary);
+
+  --chart-1: var(--primary);
+  --chart-2: oklch(0.72 0.16 264);
+  --chart-3: oklch(0.62 0.12 264);
+  --chart-4: oklch(0.52 0.09 264);
+  --chart-5: oklch(0.42 0.06 264);
+
+  --radius: 0.75rem;
+
+  --sidebar: oklch(0.985 0.003 250);
+  --sidebar-foreground: var(--foreground);
+
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: white;
+
+  --sidebar-accent: var(--secondary);
+  --sidebar-accent-foreground: var(--foreground);
+
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--primary);
+}
+
+.dark {
+  --background: oklch(0.16 0.01 250);
+  --foreground: oklch(0.98 0 0);
+
+  --card: oklch(0.22 0.01 250);
+  --card-foreground: oklch(0.98 0 0);
+
+  --popover: oklch(0.22 0.01 250);
+  --popover-foreground: oklch(0.98 0 0);
+
+  /* Brand Blue */
+  --primary: #2757ff;
+  --primary-foreground: oklch(0.16 0.01 250);
+
+  --secondary: oklch(0.28 0.01 250);
+  --secondary-foreground: oklch(0.98 0 0);
+
+  --muted: oklch(0.28 0.01 250);
+  --muted-foreground: oklch(0.74 0.01 250);
+
+  --accent: oklch(0.28 0.01 250);
+  --accent-foreground: oklch(0.98 0 0);
+
+  --destructive: oklch(0.66 0.22 27);
+
+  --border: oklch(0.32 0.01 250);
+  --input: oklch(0.32 0.01 250);
+
+  --ring: var(--primary);
+
+  --chart-1: var(--primary);
+  --chart-2: oklch(0.78 0.18 264);
+  --chart-3: oklch(0.66 0.15 264);
+  --chart-4: oklch(0.56 0.10 264);
+  --chart-5: oklch(0.46 0.08 264);
+
+  --sidebar: oklch(0.20 0.01 250);
+  --sidebar-foreground: var(--foreground);
+
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: black;
+
+  --sidebar-accent: var(--secondary);
+  --sidebar-accent-foreground: var(--foreground);
+
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--primary);
+}
+
+/* FullCalendar — shadcn/nova theming
+   Tokens are already oklch() values. Never wrap with hsl(). */
+.fc {
+  /* Layout / borders */
+  --fc-border-color: var(--border);
+  --fc-page-bg-color: var(--background);
+  --fc-neutral-bg-color: var(--muted);
+  --fc-neutral-text-color: var(--muted-foreground);
+
+  /* Nav buttons (overridden below via .fc-button selectors) */
+  --fc-button-bg-color: var(--background);
+  --fc-button-border-color: var(--border);
+  --fc-button-text-color: var(--foreground);
+  --fc-button-hover-bg-color: var(--muted);
+  --fc-button-hover-border-color: var(--border);
+  --fc-button-active-bg-color: var(--secondary);
+  --fc-button-active-border-color: var(--border);
+
+  /* Today highlight — overridden below */
+  --fc-today-bg-color: transparent;
+
+  /* Events — overridden below */
+  --fc-event-bg-color: transparent;
+  --fc-event-border-color: transparent;
+  --fc-event-text-color: var(--foreground);
+  --fc-event-selected-overlay-color: transparent;
+
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  color: var(--foreground);
+}
+
+/* ─── Toolbar ─────────────────────────────────────────────── */
+
+.fc .fc-toolbar {
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.fc .fc-toolbar-title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--foreground);
+}
+
+/* ─── Buttons — nova Button variant="outline" ─────────────── */
+
+.fc .fc-button,
+.fc .fc-button-primary {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  height: 2rem;
+  padding: 0 0.625rem;
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  font-weight: 500;
+  white-space: nowrap;
+  line-height: 1;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background-color: var(--background);
+  color: var(--foreground);
+  cursor: pointer;
+  box-shadow: none;
+  outline: none;
+  transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease;
+}
+
+.fc .fc-button:hover,
+.fc .fc-button-primary:hover {
+  background-color: var(--muted);
+  color: var(--foreground);
+  border-color: var(--border);
+  opacity: 1;
+}
+
+.fc .fc-button:focus-visible,
+.fc .fc-button-primary:focus-visible {
+  outline: none;
+  border-color: var(--ring);
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--ring) 50%, transparent);
+}
+
+.fc .fc-button:disabled,
+.fc .fc-button-primary:disabled {
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+.fc .fc-button-primary:not(:disabled):active {
+  transform: translateY(1px);
+  background-color: var(--muted);
+}
+
+/* Today button — nova Button variant="default" */
+.fc .fc-today-button {
+  background-color: var(--primary);
+  border-color: var(--primary);
+  color: var(--primary-foreground);
+}
+
+.fc .fc-today-button:not(:disabled):hover {
+  background-color: color-mix(in oklch, var(--primary) 80%, transparent);
+  border-color: color-mix(in oklch, var(--primary) 80%, transparent);
+  color: var(--primary-foreground);
+}
+
+.fc .fc-today-button:disabled {
+  background-color: var(--primary);
+  border-color: var(--primary);
+  color: var(--primary-foreground);
+  opacity: 0.5;
+}
+
+/* Prev/next — icon-only */
+.fc .fc-prev-button,
+.fc .fc-next-button {
+  width: 2rem;
+  padding: 0;
+}
+
+/* Button groups */
+.fc .fc-button-group {
+  display: inline-flex;
+}
+
+.fc .fc-button-group .fc-button {
+  border-radius: 0;
+  border-right-width: 0;
+  position: relative;
+  z-index: 0;
+}
+
+.fc .fc-button-group .fc-button:first-child {
+  border-radius: var(--radius-md) 0 0 var(--radius-md);
+}
+
+.fc .fc-button-group .fc-button:last-child {
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  border-right-width: 1px;
+}
+
+/* Active view — secondary variant */
+.fc .fc-button-group .fc-button-active,
+.fc .fc-button-group .fc-button-primary.fc-button-active {
+  background-color: var(--secondary);
+  border-color: var(--border);
+  color: var(--secondary-foreground);
+  box-shadow: none;
+  z-index: 1;
+}
+
+.fc .fc-button-group .fc-button-active:hover,
+.fc .fc-button-group .fc-button-primary.fc-button-active:hover {
+  background-color: color-mix(in oklch, var(--secondary) 95%, var(--foreground) 5%);
+}
+
+/* ─── Column headers ──────────────────────────────────────── */
+
+.fc .fc-col-header-cell {
+  background-color: transparent;
+  padding: 0.5rem 0;
+}
+
+.fc .fc-col-header-cell-cushion {
+  display: inline-block;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted-foreground);
+  text-decoration: none;
+  padding: 0;
+}
+
+/* ─── Day cells ────────────────────────────────────────────── */
+
+.fc .fc-daygrid-day {
+  transition: background-color 100ms ease;
+}
+
+.fc .fc-daygrid-day:hover {
+  background-color: color-mix(in oklch, var(--muted) 60%, transparent);
+}
+
+.fc .fc-daygrid-day-top {
+  flex-direction: row;
+}
+
+.fc .fc-daygrid-day-number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--foreground);
+  text-decoration: none;
+  width: 1.625rem;
+  height: 1.625rem;
+  border-radius: 9999px;
+  margin: 0.25rem;
+  transition: background-color 100ms ease, color 100ms ease;
+}
+
+.fc .fc-daygrid-day-number:hover {
+  background-color: var(--muted);
+}
+
+.fc .fc-day-other .fc-daygrid-day-number {
+  color: var(--muted-foreground);
+  opacity: 0.4;
+}
+
+/* ─── Today — pill on the day number, no cell fill ─────────── */
+
+.fc .fc-day-today {
+  background-color: transparent !important;
+}
+
+.fc .fc-day-today .fc-daygrid-day-frame {
+  background-color: color-mix(in oklch, var(--accent) 45%, transparent);
+}
+
+.fc .fc-day-today .fc-daygrid-day-number {
+  background-color: var(--primary);
+  color: var(--primary-foreground);
+  font-weight: 600;
+}
+
+.fc .fc-day-today .fc-daygrid-day-number:hover {
+  background-color: color-mix(in oklch, var(--primary) 85%, transparent);
+}
+
+/* ─── Events — Badge style ─────────────────────────────────── */
+
+.fc .fc-event {
+  padding: 1px 4px;
+  cursor: pointer;
+  transition: opacity 150ms ease;
+}
+
+.fc .fc-event:hover {
+  opacity: 0.85;
+}
+
+/* Scrollbar on month grids */
+.fc .fc-scroller {
+  scrollbar-width: thin;
+  scrollbar-color: var(--muted-foreground) transparent;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  html {
+    @apply font-sans scroll-smooth;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-heading font-semibold;
+  }
+}
