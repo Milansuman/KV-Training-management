@@ -17,7 +17,7 @@ async def create_submission(
 ):
 
     db_submission = AssignmentSubmission(
-        url=body.url.strip(),
+        url=str(body.url).strip(),
         user_id=body.user_id,
         assignment_id=body.assignment_id
     )
@@ -99,7 +99,8 @@ async def patch_submission(
     )
 
     update_data = body.model_dump(
-        exclude_unset=True
+        exclude_unset=True,
+        mode="json"
     )
 
     for field, value in update_data.items():
