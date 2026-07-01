@@ -1,6 +1,6 @@
 import io
 import re
-from urllib.parse import urlparse
+from urllib.parse import unquote, urlparse
 from typing import Literal
 
 import httpx
@@ -62,7 +62,8 @@ def _normalise_content_type(content_type: str, url: str) -> str:
 
 def _fetch_from_minio(object_key: str) -> tuple[bytes, str]:
     """Fetch an object from the configured MinIO bucket."""
-    response = _minio.get_object(env.MINIO_BUCKET, object_key)
+    decoded_key = unquote(object_key)
+    response = _minio.get_object(env.MINIO_BUCKET, decoded_key)
     raw_bytes = response.read()
     content_type = response.headers.get("Content-Type", "").split(";")[0].strip()
     response.close()
@@ -108,9 +109,7 @@ def route_by_content_type(state: AgentState) -> Literal["parse_binary", "parse_h
     ct = state.get("content_type", "")
     ext = "." + state["material_url"].rsplit(".", 1)[-1].lower() if "." in state["material_url"] else ""
 
-    if ct in _BINARY_TYPES or ext in _BINARY_EXTENSIONS:
-        return "parse_binary"
-    return "parse_html"
+    return "parse_binary"
 
 
 def parse_binary(state: AgentState) -> AgentState:
@@ -188,7 +187,7 @@ def analyze_with_llm(state: AgentState) -> AgentState:
     """Send normalized Markdown to GPT-4o-mini via LiteLLM and return plain-text improvement suggestions."""
     if state.get("error"):
         return state
- 
+
     content = state.get("markdown_content", "").strip()
     if not content:
         return {**state, "error": "analyze_with_llm: no markdown content to analyze"}

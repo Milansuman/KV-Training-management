@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo } from "react";
-import { Loader2, Sparkles, User } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Bot, Loader2, Sparkles, User } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -9,9 +9,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 import { useGetFeedbackSubmissionsBySessionQuery } from "@/lib/api/feedback/feedback.api";
 import { useGetAllUsersQuery } from "@/lib/api/user/user.api";
+import { useGetFeedbackSummaryMutation } from "@/lib/api/ai/feedback.api";
+import type { FeedbackSummaryResponse } from "@/lib/api/ai/feedback.type";
 
 const formatDateTimeLong = (dateStr: string) =>
   new Date(dateStr).toLocaleDateString("en-US", {
@@ -25,12 +29,19 @@ const formatDateTimeLong = (dateStr: string) =>
 
 interface FeedbackSectionProps {
   sessionId: number;
+  user?: { id: number; is_admin?: boolean } | null;
 }
 
-export default function FeedbackSection({ sessionId }: FeedbackSectionProps) {
+export default function FeedbackSection({ sessionId, user }: FeedbackSectionProps) {
   const { data: feedbackList = [], isLoading: feedbackLoading } =
     useGetFeedbackSubmissionsBySessionQuery(sessionId);
   const { data: allUsers = [] } = useGetAllUsersQuery();
+  const [getFeedbackSummary, { isLoading: summaryLoading }] =
+    useGetFeedbackSummaryMutation();
+
+  const [summaryResult, setSummaryResult] =
+    useState<FeedbackSummaryResponse | null>(null);
+  const [summaryError, setSummaryError] = useState<string | null>(null);
 
   const userMap = useMemo(() => {
     const map = new Map<number, string>();
@@ -40,8 +51,29 @@ export default function FeedbackSection({ sessionId }: FeedbackSectionProps) {
     return map;
   }, [allUsers]);
 
+  async function handleGenerateSummary() {
+    if (!user) return;
+    setSummaryError(null);
+    setSummaryResult(null);
+    try {
+      const result = await getFeedbackSummary({
+        user_id: user.id,
+        session_id: sessionId,
+      }).unwrap();
+      setSummaryResult(result);
+      toast.success("AI summary generated!");
+    } catch (err: unknown) {
+      const detail =
+        (err as { data?: { detail?: string } })?.data?.detail ??
+        "Failed to generate summary";
+      setSummaryError(detail);
+      toast.error(detail);
+    }
+  }
+
   return (
     <div className="flex flex-col gap-6 mt-4">
+      {/* ── Header ─────────────────────────────────── */}
       <div className="flex flex-col items-center gap-3 py-6 text-center">
         <div className="flex size-10 items-center justify-center rounded-full bg-primary/10">
           <Sparkles className="size-5 text-primary" />
@@ -49,7 +81,47 @@ export default function FeedbackSection({ sessionId }: FeedbackSectionProps) {
         <h3 className="text-lg font-semibold text-foreground">
           What are trainees saying about your session?
         </h3>
-        {feedbackLoading ? (
+
+        {summaryResult ? (
+          /* ── AI summary content ── */
+          <div className="w-full max-w-2xl text-left space-y-3">
+            {Object.entries(summaryResult.summaries).map(
+              ([role, summary]) => (
+                <div key={role}>
+                  <h4 className="mb-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    From {role}s
+                  </h4>
+                  <p className="text-sm leading-relaxed text-foreground/80">
+                    {summary}
+                  </p>
+                </div>
+              ),
+            )}
+          </div>
+        ) : summaryError ? (
+          <p className="max-w-2xl text-sm text-left leading-relaxed text-destructive">
+            {summaryError}
+          </p>
+        ) : user ? (
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={summaryLoading}
+            onClick={handleGenerateSummary}
+          >
+            {summaryLoading && (
+              <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+            )}
+            {summaryLoading ? (
+              "Generating…"
+            ) : (
+              <>
+                <Bot className="mr-1.5 h-4 w-4" />
+                Generate Summary
+              </>
+            )}
+          </Button>
+        ) : feedbackLoading ? (
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         ) : (
           <p className="max-w-2xl text-sm text-left leading-relaxed text-foreground/70">
@@ -60,6 +132,7 @@ export default function FeedbackSection({ sessionId }: FeedbackSectionProps) {
         )}
       </div>
 
+      {/* ── Loading state ────────────────────────────── */}
       {feedbackLoading ? (
         <div className="flex items-center justify-center py-16">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />

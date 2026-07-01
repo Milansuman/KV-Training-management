@@ -20,3 +20,7 @@ class FeedbackSummaryState(TypedDict):
     summaries: Optional[dict]
 
     error: Optional[str]
+
+    # Machine-readable code for the router to map to HTTP status
+    # e.g. "not_found", "no_feedback", "internal_error"
+    error_code: Optional[str]

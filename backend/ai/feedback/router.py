@@ -9,6 +9,13 @@ from .graph import agent
 
 router = APIRouter(prefix="/ai/feedback", tags=["Feedback Agent"])
 
+# Map the agent's error codes to HTTP status codes
+_ERROR_CODES: dict[str, int] = {
+    "not_found": 404,
+    "no_feedback": 404,
+    "internal_error": 500,
+}
+
 
 class FeedbackSummaryRequest(BaseModel):
     user_id: int
@@ -35,12 +42,16 @@ async def summarize_feedback(
         "grouped_feedbacks": None,
         "summaries": None,
         "error": None,
+        "error_code": None,
     }
 
     result = await agent.ainvoke(initial_state)
 
-    if result.get("error"):
-        raise HTTPException(status_code=500, detail=result["error"])
+    error = result.get("error")
+    if error:
+        error_code = result.get("error_code", "internal_error")
+        status_code = _ERROR_CODES.get(error_code, 500)
+        raise HTTPException(status_code=status_code, detail=error)
 
     return FeedbackSummaryResponse(
         user_id=result["user_id"],

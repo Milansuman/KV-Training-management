@@ -39,11 +39,19 @@ async def fetch_user_role(state: FeedbackSummaryState) -> FeedbackSummaryState:
         )).first()
 
         if permission is None:
-            return {**state, "error": f"User {state['user_id']} has no role in session {state['session_id']}"}
+            return {
+                **state,
+                "error": f"User {state['user_id']} has no role in session {state['session_id']}",
+                "error_code": "not_found",
+            }
 
         return {**state, "user_role": permission.role.value}
     except Exception as exc:
-        return {**state, "error": f"fetch_user_role failed: {exc}"}
+        return {
+            **state,
+            "error": f"fetch_user_role failed: {exc}",
+            "error_code": "internal_error",
+        }
 
 
 async def fetch_and_group_feedbacks(state: FeedbackSummaryState) -> FeedbackSummaryState:
@@ -77,11 +85,19 @@ async def fetch_and_group_feedbacks(state: FeedbackSummaryState) -> FeedbackSumm
             grouped.setdefault(key, []).append(text)
 
         if not grouped:
-            return {**state, "error": "No feedback found for this user in the given session"}
+            return {
+                **state,
+                "error": "No feedback found for this user in the given session",
+                "error_code": "no_feedback",
+            }
 
         return {**state, "grouped_feedbacks": grouped}
     except Exception as exc:
-        return {**state, "error": f"fetch_and_group_feedbacks failed: {exc}"}
+        return {
+            **state,
+            "error": f"fetch_and_group_feedbacks failed: {exc}",
+            "error_code": "internal_error",
+        }
 
 
 def summarize_feedbacks(state: FeedbackSummaryState) -> FeedbackSummaryState:
@@ -109,7 +125,11 @@ def summarize_feedbacks(state: FeedbackSummaryState) -> FeedbackSummaryState:
         summaries = json.loads(raw)
         return {**state, "summaries": summaries}
     except Exception as exc:
-        return {**state, "error": f"summarize_feedbacks failed: {exc}"}
+        return {
+            **state,
+            "error": f"summarize_feedbacks failed: {exc}",
+            "error_code": "internal_error",
+        }
 
 
 def handle_error(state: FeedbackSummaryState) -> FeedbackSummaryState:
