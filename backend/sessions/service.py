@@ -179,6 +179,16 @@ async def assign_topic_to_session(
     session_id: int,
     topic_id: int
 ):
+    exists = await repository.session_topic_exists(
+        db=db,
+        session_id=session_id,
+        topic_id=topic_id
+    )
+
+    if exists:
+        raise UnprocessableEntityException(
+            "Topic already attached to session"
+        )
     try:
         session = await repository.get_session_by_id(
             db=db,
@@ -211,6 +221,16 @@ async def remove_topic_from_session(
     session_id: int,
     topic_id: int
 ):
+    exists = await repository.session_topic_exists(
+        db=db,
+        session_id=session_id,
+        topic_id=topic_id
+    )
+
+    if not exists:
+        raise NotFoundException(
+            "Topic is not attached to this session"
+        )
     try:
         session = await repository.get_session_by_id(
             db=db,

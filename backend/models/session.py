@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import TYPE_CHECKING
 
+from sqlalchemy import UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.schema import Column, ForeignKey, Table
 from sqlalchemy.types import DateTime, Text
@@ -16,7 +17,12 @@ session_topic = Table(
     "session_topic",
     Base.metadata,
     Column("session_id", ForeignKey("session.id", ondelete="CASCADE")),
-    Column("topic_id", ForeignKey("topic.id", ondelete="CASCADE"))
+    Column("topic_id", ForeignKey("topic.id", ondelete="CASCADE")),
+    UniqueConstraint(
+        "session_id",
+        "topic_id",
+        name="uq_session_topic"
+    )
 )
 
 class Session(Entity, AccessLogMixIn):
