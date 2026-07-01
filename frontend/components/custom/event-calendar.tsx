@@ -145,7 +145,7 @@ export function EventCalendar({ className, programId }: EventCalendarProps) {
 
     if (selectInfo.allDay) {
       start.setHours(9, 0, 0, 0);
-      end.setTime(start.getTime() + 60 * 60 * 1000);
+      end.setTime(end.getTime() - 60 * 1000);
     }
 
     createForm.reset({

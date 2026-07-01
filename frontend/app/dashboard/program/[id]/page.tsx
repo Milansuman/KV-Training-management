@@ -9,7 +9,7 @@ export default async function DashboardProgram({
   const programId = parseInt(id, 10);
 
   return (
-    <main className="w-screen h-screen p-4">
+    <main className="w-full h-full p-4">
       <EventCalendar className="w-full h-full" programId={programId} />
     </main>
   );
