@@ -1,3 +1,5 @@
+from datetime import UTC, datetime
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -36,7 +38,18 @@ async def get_submissions_by_session_id(
         select(FeedbackSubmission)
         .join(Feedback, FeedbackSubmission.feedback_id == Feedback.id)
         .where(Feedback.session_id == session_id)
+        .where(Feedback.deleted_at.is_(None))
         .where(FeedbackSubmission.deleted_at.is_(None))
     )
 
     return list(result.all())
+
+async def delete_feedback(
+    db: AsyncSession,
+    feedback: Feedback
+) -> None:
+
+    feedback.deleted_at = datetime.now(tz=UTC)
+
+    await db.commit()
+    await db.refresh(feedback)

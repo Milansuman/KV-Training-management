@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, model_validator
 
 
 class FeedbackSubmissionCreateRequest(BaseModel):
@@ -9,6 +9,18 @@ class FeedbackSubmissionCreateRequest(BaseModel):
     recipient_id: Optional[int] = None
     feedback_id: int
     text: str
+
+    @model_validator(mode="after")
+    def validate_recipient(self):
+        if (
+            self.recipient_id is not None
+            and self.user_id == self.recipient_id
+        ):
+            raise ValueError(
+                "user_id and recipient_id cannot be the same"
+            )
+
+        return self
 
 
 class FeedbackSubmissionResponse(BaseModel):

@@ -5,7 +5,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from models.feedback import Feedback, FeedbackType
 from models.feedback_submission import FeedbackSubmission
 from feedback import repository
+from sqlalchemy.exc import NoResultFound
 
+from exceptions.exceptions import NotFoundException
 
 async def create_feedback(
     db: AsyncSession,
@@ -42,7 +44,31 @@ async def get_submissions_by_session_id(
     session_id: int
 ) -> list[FeedbackSubmission]:
 
-    return await repository.get_submissions_by_session_id(
+    submission = await repository.get_submissions_by_session_id(
         db=db,
         session_id=session_id
+    )
+    if submission is None or submission == []:
+        raise NotFoundException(
+            "No feedback submissions found for this session"
+        )
+    return submission
+
+async def delete_feedback_by_session_id(
+    db: AsyncSession,
+    session_id: int
+):
+    feedback = await get_feedback_by_session_id(
+        db=db,
+        session_id=session_id
+    )
+
+    if feedback is None:
+        raise NotFoundException(
+            "Feedback not found"
+        )
+
+    await repository.delete_feedback(
+        db=db,
+        feedback=feedback
     )
