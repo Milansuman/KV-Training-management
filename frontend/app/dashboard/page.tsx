@@ -33,14 +33,33 @@ import {
 } from "@/lib/api/programs/programs.api";
 import { toast } from "sonner";
 import AnimatedContent from "@/components/ui/AnimatedContent";
+import { ProgramProgressItem } from "@/lib/api/programs/programs.type";
+import { Pie, PieChart } from "recharts";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  ChartContainer,
+  ChartLegend,
+  ChartLegendContent,
+  type ChartConfig,
+} from "@/components/ui/chart";
+
 
 export default function Dashboard() {
   const router = useRouter();
   const { data: user_details, isLoading: userLoading } = useGetMyselfQuery();
-  const { data: program_details = [], isLoading: programsLoading } =
-    useGetProgramProgressQuery(user_details?.id ?? 0, {
-      skip: !user_details,
-    });
+  const {
+    data: program_details = [],
+    isLoading: programsLoading,
+    refetch: refetchProgramProgress,
+  } = useGetProgramProgressQuery(user_details?.id ?? 0, {
+    skip: !user_details,
+  });
 
   const [createProgram, { isLoading: isCreating }] = useCreateProgramMutation();
   const [updateProgram, { isLoading: isUpdating }] = useUpdateProgramMutation();
@@ -60,6 +79,46 @@ export default function Dashboard() {
 
   const program_count = program_details.length;
 
+  const { upcoming, ongoing, completed } = getProgramCounts(program_details);
+  const chartData = [
+    {
+      status: "Completed",
+      count: completed,
+      fill: "var(--chart-1)",
+    },
+    {
+      status: "Ongoing",
+      count: ongoing,
+      fill: "var(--chart-2)",
+    },
+    {
+      status: "Upcoming",
+      count: upcoming,
+      fill: "var(--chart-3)",
+    },
+  ];
+
+  const chartConfig = {
+    count: {
+      label: "Programs",
+    },
+
+    Completed: {
+      label: "Completed",
+      color: "var(--chart-1)",
+    },
+
+    Ongoing: {
+      label: "Ongoing",
+      color: "var(--chart-2)",
+    },
+
+    Upcoming: {
+      label: "Upcoming",
+      color: "var(--chart-3)",
+    },
+  } satisfies ChartConfig;
+
   function handleClickProgram(id: number) {
     router.push(`/dashboard/program/${id}`);
   }
@@ -74,7 +133,13 @@ export default function Dashboard() {
 
   function handleEdit(
     e: React.MouseEvent,
-    program: { id: number; title: string; description: string, start_date: string, end_date: string },
+    program: {
+      id: number;
+      title: string;
+      description: string;
+      start_date: string;
+      end_date: string;
+    },
   ) {
     e.preventDefault();
     e.stopPropagation();
@@ -93,6 +158,7 @@ export default function Dashboard() {
     try {
       await deleteProgram(programId).unwrap();
       toast.success("Program deleted successfully!");
+      await refetchProgramProgress();
     } catch (err: any) {
       toast.error(
         err?.data?.detail || err?.data?.message || "Failed to delete program",
@@ -121,6 +187,7 @@ export default function Dashboard() {
       setDescription("");
       setStartDate("");
       setEndDate("");
+      await refetchProgramProgress();
     } catch (err: any) {
       toast.error(
         err?.data?.detail || err?.data?.message || "Failed to create program",
@@ -149,6 +216,7 @@ export default function Dashboard() {
       toast.success("Program updated successfully!");
       setIsUpdateOpen(false);
       resetUpdateForm();
+      await refetchProgramProgress();
     } catch (err: any) {
       toast.error(
         err?.data?.detail || err?.data?.message || "Failed to update program",
@@ -169,8 +237,37 @@ export default function Dashboard() {
     return null;
   }
 
+//   FUNCTION TO GET THE COUNTS OF UPCOMING, ONGOING, AND COMPLETED PROGRAMS 
+  function getProgramCounts(program_details: ProgramProgressItem[]) {
+    const today = new Date();
+
+    let upcoming = 0;
+    let ongoing = 0;
+    let completed = 0;
+
+    program_details.forEach((program) => {
+      const start = new Date(program.start_date);
+      const end = new Date(program.end_date);
+
+      if (today < start) {
+        upcoming++;
+      } else if (today > end) {
+        completed++;
+      } else {
+        ongoing++;
+      }
+    });
+
+    return {
+      upcoming,
+      ongoing,
+      completed,
+    };
+  }
+
   return (
     <>
+    
       <div className="flex flex-col-reverse gap-6 p-6 lg:flex-row lg:items-stretch">
         {/* NUMBER CARD*/}
         <AnimatedContent delay={0}>
@@ -194,11 +291,16 @@ export default function Dashboard() {
             </p>
             <div className="space-y-7">
               {program_details.map((program) => {
+                const totalSessions = Number(program.total_sessions) || 0;
+                const completedSessions =
+                  Number(program.completed_sessions) || 0;
                 const progress =
-                  program.total_sessions > 0
-                    ? (program.completed_sessions / program.total_sessions) *
-                      100
-                    : 0;
+                  totalSessions === 0
+                    ? 0
+                    : Math.min(
+                        100,
+                        Math.max(0, (completedSessions / totalSessions) * 100),
+                      );
 
                 return (
                   <div key={program.id}>
@@ -210,17 +312,47 @@ export default function Dashboard() {
                         {program.completed_sessions}/{program.total_sessions}
                       </span>
                     </div>
-                    <Progress value={progress} className="bg-primary" />
+                    <Progress value={progress} />
                   </div>
                 );
               })}
             </div>
           </div>
         </AnimatedContent>
+
+        {/* PIE CHART CARD */}
+        <AnimatedContent delay={0.3}>
+          <Card className="flex flex-col rounded-2xl">
+            <CardHeader className="items-center pb-2">
+              <CardTitle className="font-quicksand">Program Status</CardTitle>
+
+              <CardDescription className="font-quicksand">
+                Distribution of your programs
+              </CardDescription>
+            </CardHeader>
+
+            <CardContent>
+              <ChartContainer
+                config={chartConfig}
+                className="mx-auto aspect-square h-[320px]"
+              >
+                <PieChart>
+                  <Pie data={chartData} dataKey="count" nameKey="status" />
+
+                  <ChartLegend
+                    content={<ChartLegendContent nameKey="status" />}
+                    className="mt-4 flex-wrap justify-center gap-4"
+                  />
+                </PieChart>
+              </ChartContainer>
+            </CardContent>
+          </Card>
+        </AnimatedContent>
+        
       </div>
 
       {/* PROGRAM CARDS */}
-      <div className="mt-9 ml-7 mr-7 mb-7 font-quicksand">
+     <div className="mt-9 ml-7 mr-7 mb-7 font-quicksand">
         <AnimatedContent delay={0.4}>
           <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-2xl font-semibold text-foreground sm:text-3xl mb-1.5">
@@ -322,7 +454,7 @@ export default function Dashboard() {
         {/* HANDLING THE RENDERING,UPDATE AND DELETE OF PROGRAM CARDS */}
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
           {program_details.map((program, index) => (
-            <span key={program.id}>
+            <div key={program.id} className="w-full">
               <AnimatedContent
                 distance={30}
                 direction="vertical"
@@ -379,9 +511,7 @@ export default function Dashboard() {
                 </div>
               </AnimatedContent>
               <Dialog
-                open={
-                  isUpdateOpen && editingProgramId === program.id
-                }
+                open={isUpdateOpen && editingProgramId === program.id}
                 onOpenChange={(open) => {
                   setIsUpdateOpen(open);
                   if (!open) {
@@ -389,7 +519,6 @@ export default function Dashboard() {
                   }
                 }}
               >
-
                 <DialogContent className="sm:max-w-lg font-quicksand">
                   <form onSubmit={handleUpdateProgram}>
                     <DialogHeader className="font-quicksand">
@@ -403,61 +532,45 @@ export default function Dashboard() {
 
                     <div className="grid gap-5 py-4 font-quicksand">
                       <div className="grid gap-2 font-quicksand">
-                        <Label htmlFor="update-title">
-                          Program Title
-                        </Label>
+                        <Label htmlFor="update-title">Program Title</Label>
                         <Input
                           id="update-title"
                           placeholder="Freshers Training"
                           value={updateTitle}
-                          onChange={(e) =>
-                            setUpdateTitle(e.target.value)
-                          }
+                          onChange={(e) => setUpdateTitle(e.target.value)}
                           required
                         />
                       </div>
 
                       <div className="grid gap-2 font-quicksand">
-                        <Label htmlFor="update-description">
-                          Description
-                        </Label>
+                        <Label htmlFor="update-description">Description</Label>
                         <Textarea
                           id="update-description"
                           placeholder="Enter program description..."
                           value={updateDescription}
-                          onChange={(e) =>
-                            setUpdateDescription(e.target.value)
-                          }
+                          onChange={(e) => setUpdateDescription(e.target.value)}
                           required
                         />
                       </div>
 
                       <div className="grid grid-cols-2 gap-4 font-quicksand">
                         <div className="grid gap-2">
-                          <Label htmlFor="update-startDate">
-                            Start Date
-                          </Label>
+                          <Label htmlFor="update-startDate">Start Date</Label>
                           <Input
                             id="update-startDate"
                             type="date"
                             value={updateStartDate}
-                            onChange={(e) =>
-                              setUpdateStartDate(e.target.value)
-                            }
+                            onChange={(e) => setUpdateStartDate(e.target.value)}
                           />
                         </div>
 
                         <div className="grid gap-2">
-                          <Label htmlFor="update-endDate">
-                            End Date
-                          </Label>
+                          <Label htmlFor="update-endDate">End Date</Label>
                           <Input
                             id="update-endDate"
                             type="date"
                             value={updateEndDate}
-                            onChange={(e) =>
-                              setUpdateEndDate(e.target.value)
-                            }
+                            onChange={(e) => setUpdateEndDate(e.target.value)}
                           />
                         </div>
                       </div>
@@ -484,10 +597,9 @@ export default function Dashboard() {
                   </form>
                 </DialogContent>
               </Dialog>
-            </span>
+            </div>
           ))}
         </div>
-
       </div>
     </>
   );

@@ -1,136 +1,96 @@
-import React, { useRef, useEffect } from 'react';
-import { gsap } from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
+"use client";
 
-gsap.registerPlugin(ScrollTrigger);
+import React, { useEffect, useRef } from "react";
+import { gsap } from "gsap";
 
 interface AnimatedContentProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
-  container?: Element | string | null;
   distance?: number;
-  direction?: 'vertical' | 'horizontal';
+  direction?: "vertical" | "horizontal";
   reverse?: boolean;
   duration?: number;
-  ease?: string;
-  initialOpacity?: number;
-  animateOpacity?: boolean;
-  scale?: number;
-  threshold?: number;
   delay?: number;
-  disappearAfter?: number;
-  disappearDuration?: number;
-  disappearEase?: string;
-  onComplete?: () => void;
-  onDisappearanceComplete?: () => void;
+  animateOpacity?: boolean;
+  className?: string;
 }
 
-const AnimatedContent: React.FC<AnimatedContentProps> = ({
+export default function AnimatedContent({
   children,
-  container,
-  distance = 100,
-  direction = 'vertical',
+  distance = 80,
+  direction = "vertical",
   reverse = false,
-  duration = 0.8,
-  ease = 'power3.out',
-  initialOpacity = 0,
-  animateOpacity = true,
-  scale = 1,
-  threshold = 0.1,
+  duration = 0.7,
   delay = 0,
-  disappearAfter = 0,
-  disappearDuration = 0.5,
-  disappearEase = 'power3.in',
-  onComplete,
-  onDisappearanceComplete,
-  className = '',
+  animateOpacity = true,
+  className = "",
   ...props
-}) => {
+}: AnimatedContentProps) {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const el = ref.current;
+
     if (!el) return;
 
-    let scrollerTarget: Element | string | null = container || document.getElementById('snap-main-container') || null;
+    // Determine animation axis
+    const axis = direction === "horizontal" ? "x" : "y";
 
-    if (typeof scrollerTarget === 'string') {
-      scrollerTarget = document.querySelector(scrollerTarget);
-    }
-
-    const axis = direction === 'horizontal' ? 'x' : 'y';
+    // Determine animation direction
     const offset = reverse ? -distance : distance;
-    const startPct = (1 - threshold) * 100;
 
+    // Initial state
     gsap.set(el, {
       [axis]: offset,
-      scale,
-      opacity: animateOpacity ? initialOpacity : 1,
-      visibility: 'visible'
+      opacity: animateOpacity ? 0 : 1,
+      willChange: "transform, opacity",
     });
 
-    const tl = gsap.timeline({
-      paused: true,
-      delay,
-      onComplete: () => {
-        if (onComplete) onComplete();
-        if (disappearAfter > 0) {
-          gsap.to(el, {
-            [axis]: reverse ? distance : -distance,
-            scale: 0.8,
-            opacity: animateOpacity ? initialOpacity : 0,
-            delay: disappearAfter,
-            duration: disappearDuration,
-            ease: disappearEase,
-            onComplete: () => onDisappearanceComplete?.()
-          });
-        }
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) return;
+
+        // Prevent duplicate animations
+        gsap.killTweensOf(el);
+
+        gsap.to(el, {
+          [axis]: 0,
+          opacity: animateOpacity ? 1 : undefined,
+          duration,
+          delay,
+          ease: "power3.out",
+          clearProps: "transform",
+          onComplete: () => {
+            gsap.set(el, {
+              willChange: "auto",
+            });
+          },
+        });
+
+        observer.unobserve(el);
+      },
+      {
+        threshold: 0.15,
       }
-    });
+    );
 
-    tl.to(el, {
-      [axis]: 0,
-      scale: 1,
-      opacity: 1,
-      duration,
-      ease
-    });
-
-    const st = ScrollTrigger.create({
-      trigger: el,
-      scroller: scrollerTarget || window,
-      start: `top ${startPct}%`,
-      once: true,
-      onEnter: () => tl.play()
-    });
+    observer.observe(el);
 
     return () => {
-      st.kill();
-      tl.kill();
+      observer.disconnect();
+      gsap.killTweensOf(el);
     };
   }, [
-    container,
     distance,
     direction,
     reverse,
     duration,
-    ease,
-    initialOpacity,
-    animateOpacity,
-    scale,
-    threshold,
     delay,
-    disappearAfter,
-    disappearDuration,
-    disappearEase,
-    onComplete,
-    onDisappearanceComplete
+    animateOpacity,
   ]);
 
   return (
-    <div ref={ref} className={`invisible ${className}`} {...props}>
+    <div ref={ref} className={className} {...props}>
       {children}
     </div>
   );
-};
-
-export default AnimatedContent;
+}

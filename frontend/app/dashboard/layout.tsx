@@ -24,7 +24,7 @@ export default function MainLayout({
   return (
     <>
       <AppNavbar />
-      <main className="pt-24 w-screen h-screen">{children}</main>
+      <main className="pt-24 w-screen h-screen overflow-x-hidden overflow-y-auto">{children}</main>
     </>
   );
 }
