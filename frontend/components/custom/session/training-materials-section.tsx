@@ -83,6 +83,8 @@ export default function TrainingMaterialsSection({
   );
   const [updateMaterialTitle, setUpdateMaterialTitle] = useState("");
   const [updateMaterialUrl, setUpdateMaterialUrl] = useState("");
+  const [updateMaterialFile, setUpdateMaterialFile] = useState<File | null>(null);
+  const [updateMaterialTab, setUpdateMaterialTab] = useState<"url" | "file">("url");
 
   // Delete loading
   const [deletingMaterialId, setDeletingMaterialId] = useState<number | null>(
@@ -136,7 +138,9 @@ export default function TrainingMaterialsSection({
   function handleEditMaterial(material: TrainingMaterialResponse) {
     setEditingMaterialId(material.id);
     setUpdateMaterialTitle(material.title);
-    setUpdateMaterialUrl(material.material_type === "url" ? material.url : "");
+    setUpdateMaterialUrl(material.url);
+    setUpdateMaterialFile(null);
+    setUpdateMaterialTab(material.material_type === "URL" ? "url" : "file");
     setIsMaterialUpdateOpen(true);
   }
 
@@ -148,13 +152,16 @@ export default function TrainingMaterialsSection({
       await updateMaterial({
         materialId: editingMaterialId,
         title: updateMaterialTitle,
-        url: updateMaterialUrl || null,
+        url: updateMaterialTab === "url" ? updateMaterialUrl : null,
+        file: updateMaterialTab === "file" ? updateMaterialFile : null,
       }).unwrap();
       toast.success("Material updated successfully!");
       setIsMaterialUpdateOpen(false);
       setEditingMaterialId(null);
       setUpdateMaterialTitle("");
       setUpdateMaterialUrl("");
+      setUpdateMaterialFile(null);
+      setUpdateMaterialTab("url");
     } catch (err) {
       toast.error(getErrorDetail(err));
     }
@@ -282,7 +289,7 @@ export default function TrainingMaterialsSection({
               <Card>
                 <CardHeader>
                   <div className="flex items-center gap-2">
-                    {material.material_type === "url" ? (
+                    {material.material_type === "URL" ? (
                       <Link className="size-4 shrink-0 text-muted-foreground" />
                     ) : (
                       <File className="size-4 shrink-0 text-muted-foreground" />
@@ -290,16 +297,16 @@ export default function TrainingMaterialsSection({
                     <CardTitle>{material.title}</CardTitle>
                   </div>
                   <CardDescription>
-                    {material.material_type === "url"
+                    {material.material_type === "URL"
                       ? material.url
                       : material.url
                         ? material.url.split("/").pop()
-                        : "File"}
+                        : "FILE"}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <span className="inline-flex items-center gap-1.5 rounded-md bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
-                    {material.material_type === "url" ? (
+                    {material.material_type === "URL" ? (
                       <>
                         <Link className="size-3" />
                         URL
@@ -313,7 +320,7 @@ export default function TrainingMaterialsSection({
                   </span>
                 </CardContent>
                 <CardFooter>
-                  {material.material_type === "url" ? (
+                  {material.material_type === "URL" ? (
                     <a
                       href={material.url}
                       target="_blank"
@@ -374,6 +381,8 @@ export default function TrainingMaterialsSection({
                     setEditingMaterialId(null);
                     setUpdateMaterialTitle("");
                     setUpdateMaterialUrl("");
+                    setUpdateMaterialFile(null);
+                    setUpdateMaterialTab("url");
                   }
                 }}
               >
@@ -401,7 +410,7 @@ export default function TrainingMaterialsSection({
                           required
                         />
                       </div>
-                      <Tabs defaultValue="url">
+                      <Tabs value={updateMaterialTab} onValueChange={(v) => setUpdateMaterialTab(v as "url" | "file")}>
                         <TabsList className="w-full" variant="line">
                           <TabsTrigger className="flex-1" value="url">
                             URL
@@ -422,8 +431,9 @@ export default function TrainingMaterialsSection({
                         <TabsContent value="file">
                           <Input
                             type="file"
-                            onChange={() => {
-                              // File update is handled separately
+                            onChange={(e) => {
+                              const file = (e.target as HTMLInputElement).files?.[0] || null;
+                              setUpdateMaterialFile(file);
                             }}
                           />
                         </TabsContent>
@@ -434,11 +444,13 @@ export default function TrainingMaterialsSection({
                         type="button"
                         variant="outline"
                         onClick={() => {
-                          setIsMaterialUpdateOpen(false);
-                          setEditingMaterialId(null);
-                          setUpdateMaterialTitle("");
-                          setUpdateMaterialUrl("");
-                        }}
+                            setIsMaterialUpdateOpen(false);
+                            setEditingMaterialId(null);
+                            setUpdateMaterialTitle("");
+                            setUpdateMaterialUrl("");
+                            setUpdateMaterialFile(null);
+                            setUpdateMaterialTab("url");
+                          }}
                       >
                         Cancel
                       </Button>

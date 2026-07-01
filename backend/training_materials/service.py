@@ -116,7 +116,7 @@ async def update_material(
             "Provide either file or url"
         )
 
-    if not file and not url:
+    if file is None and url is None:
         logger.exception(f"No file or url provided for material with ID {material_id}...")
         raise BadRequestException(
             "File or url is required"

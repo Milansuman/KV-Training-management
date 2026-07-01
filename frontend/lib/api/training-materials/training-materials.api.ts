@@ -89,6 +89,7 @@ export const trainingMaterialsApi = baseSlice.injectEndpoints({
       query: ({ materialId, title, file, url }) => {
         const formData = new FormData()
         formData.append("title", title)
+
         if (file) formData.append("file", file)
         if (url) formData.append("url", url)
         return {
