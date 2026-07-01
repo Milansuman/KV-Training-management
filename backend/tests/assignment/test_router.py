@@ -2,6 +2,10 @@
 
 from datetime import datetime, timezone, timedelta
 
+import pytest
+
+from models.session_permission import SessionPermission, SessionRoles
+
 
 ASSIGNMENT_PAYLOAD = {
     "title": "Build a REST API",
@@ -73,6 +77,7 @@ def _create_assignment(client, token, session_id, payload=None):
     )
 
 
+
 # ---------------------------------------------------------------------------
 # POST /assignments
 # ---------------------------------------------------------------------------
@@ -92,6 +97,105 @@ def test_create_assignment_admin_returns_201(client) -> None:
     assert "created_at" in body
     assert "updated_at" in body
 
+def test_create_submission_missing_user_returns_404(client):
+    _, token = _setup_admin(client)
+    session_id = _create_session(client, token)
+    assignment_id = _create_assignment(client, token, session_id).json()["id"]
+
+    response = client.post(
+        "/assignment-submissions",
+        json={
+            "url": "https://example.com/submission.pdf",
+            "user_id": 99999,
+            "assignment_id": assignment_id,
+        },
+        cookies={"access_token": token},
+    )
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "User not found 99999"
+
+@pytest.mark.asyncio
+async def test_create_assignment_trainer_returns_201(client, db_session) -> None:
+    _, token = _setup_admin(client)
+    session_id = _create_session(client, token)
+
+    trainer = client.post(
+        "/auth/register",
+        json={
+            "username": "trainer",
+            "email": "trainer@example.com",
+            "display_name": "Trainer User",
+            "password": "secret",
+        },
+    ).json()
+    trainer_token = client.post(
+        "/auth/login",
+        json={"username_or_email": "trainer", "password": "secret"},
+    ).cookies.get("access_token")
+
+    db_session.add(
+        SessionPermission(
+            user_id=trainer["id"],
+            session_id=session_id,
+            role=SessionRoles.TRAINER,
+        )
+    )
+    await db_session.commit()
+
+    response = _create_assignment(client, trainer_token, session_id, {"title": "Trainer Assignment"})
+
+    assert response.status_code == 200
+    assert response.json()["title"] == "Trainer Assignment"
+    assert response.json()["session_id"] == session_id
+
+@pytest.mark.asyncio
+async def test_create_assignment_nontrainer_returns_401(client, db_session) -> None:
+    _, token = _setup_admin(client)
+    session_id = _create_session(client, token)
+
+    trainer = client.post(
+        "/auth/register",
+        json={
+            "username": "trainer",
+            "email": "trainer@example.com",
+            "display_name": "Trainer User",
+            "password": "secret",
+        },
+    ).json()
+    trainer_token = client.post(
+        "/auth/login",
+        json={"username_or_email": "trainer", "password": "secret"},
+    ).cookies.get("access_token")
+
+    db_session.add(
+        SessionPermission(
+            user_id=trainer["id"],
+            session_id=session_id,
+            role=SessionRoles.CANDIDATE,
+        )
+    )
+    await db_session.commit()
+
+    response = _create_assignment(client, trainer_token, session_id, {"title": "Trainer Assignment"})
+
+    assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_create_assignment_trainee_cannot_create_assignment(
+    client,
+    db_session,
+):
+    _, admin_token = _setup_admin(client)
+    session_id = _create_session(client, admin_token)
+
+    trainee = client.post(
+        "/auth/register",
+        json={
+            "username": "trainee",
+            "email": "trainee@example.com",
+            "display_name": "Trainee User"})
 
 def test_create_assignment_non_admin_returns_401(client) -> None:
     # First user (admin) is created internally

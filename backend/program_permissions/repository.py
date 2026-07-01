@@ -33,6 +33,7 @@ async def get_existing_permission(
         select(ProgramPermission)
         .where(ProgramPermission.user_id == user_id)
         .where(ProgramPermission.program_id == program_id)
+        .where(ProgramPermission.deleted_at.is_(None))
     )).first()
 
 
