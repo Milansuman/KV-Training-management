@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import {
+  Bot,
   ExternalLink,
   File,
   Link,
@@ -42,6 +43,9 @@ import {
 } from "@/lib/api/training-materials/training-materials.api";
 import type { TrainingMaterialResponse } from "@/lib/api/training-materials/training-materials.type";
 import type { UserResponse } from "@/lib/api/user/user.type";
+import type { TopicResponse } from "@/lib/api/sessions/sessions.type";
+
+import { useAnalyzeTrainingMaterialMutation } from "@/lib/api/ai/training-materials.api";
 
 function getErrorDetail(err: unknown): string {
   const data = (err as { data?: { detail?: string; message?: string } })?.data;
@@ -52,12 +56,14 @@ interface TrainingMaterialsSectionProps {
   sessionId: number;
   user: UserResponse | undefined;
   canManage: boolean;
+  topics?: TopicResponse[];
 }
 
 export default function TrainingMaterialsSection({
   sessionId,
   user,
   canManage,
+  topics = [],
 }: TrainingMaterialsSectionProps) {
   const { data: materials = [], isLoading: materialsLoading } =
     useGetTrainingMaterialsBySessionQuery(sessionId);
@@ -90,6 +96,18 @@ export default function TrainingMaterialsSection({
   const [deletingMaterialId, setDeletingMaterialId] = useState<number | null>(
     null,
   );
+
+  // AI suggestions
+  const [analyzeMaterial, { isLoading: isAnalyzing }] =
+    useAnalyzeTrainingMaterialMutation();
+  const [aiSuggestionsMaterial, setAiSuggestionsMaterial] =
+    useState<TrainingMaterialResponse | null>(null);
+  const [aiSuggestionsContent, setAiSuggestionsContent] = useState<
+    string | null
+  >(null);
+  const [aiSuggestionsError, setAiSuggestionsError] = useState<
+    string | null
+  >(null);
 
   function resetMaterialAddForm() {
     setMaterialTitle("");
@@ -168,15 +186,38 @@ export default function TrainingMaterialsSection({
   }
 
   async function handleDeleteMaterial(materialId: number) {
+    if (!confirm("Are you sure you want to delete this material?")) return;
     setDeletingMaterialId(materialId);
     try {
       await deleteMaterial(materialId).unwrap();
-      toast.success("Material deleted successfully!");
+      toast.success("Material deleted!");
     } catch (err) {
       toast.error(getErrorDetail(err));
     } finally {
       setDeletingMaterialId(null);
     }
+  }
+
+  async function handleGetAiSuggestions(material: TrainingMaterialResponse) {
+    setAiSuggestionsMaterial(material);
+    setAiSuggestionsContent(null);
+    setAiSuggestionsError(null);
+    try {
+      const result = await analyzeMaterial({
+        material_url: material.url,
+        topics: topics?.map((t) => t.title) ?? [],
+      }).unwrap();
+      setAiSuggestionsContent(result.suggestions);
+    } catch (err) {
+      const detail = getErrorDetail(err);
+      setAiSuggestionsError(detail);
+    }
+  }
+
+  function resetAiSuggestions() {
+    setAiSuggestionsMaterial(null);
+    setAiSuggestionsContent(null);
+    setAiSuggestionsError(null);
   }
 
   return (
@@ -347,6 +388,13 @@ export default function TrainingMaterialsSection({
                     <div className="ml-auto flex items-center gap-1">
                       <button
                         type="button"
+                        onClick={() => handleGetAiSuggestions(material)}
+                        className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
+                      >
+                        <Bot className="size-4" />
+                      </button>
+                      <button
+                        type="button"
                         onClick={() => handleEditMaterial(material)}
                         className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
                       >
@@ -368,6 +416,55 @@ export default function TrainingMaterialsSection({
                   )}
                 </CardFooter>
               </Card>
+
+              {/* ── AI Suggestions Dialog ───────────────── */}
+              <Dialog
+                open={
+                  aiSuggestionsMaterial?.id === material.id &&
+                  !isMaterialUpdateOpen
+                }
+                onOpenChange={(open) => {
+                  if (!open) resetAiSuggestions();
+                }}
+              >
+                <DialogContent className="sm:max-w-lg">
+                  <DialogHeader>
+                    <div className="flex items-center gap-2">
+                      <div className="flex size-8 items-center justify-center rounded-full bg-primary/10">
+                        <Bot className="size-4 text-primary" />
+                      </div>
+                      <DialogTitle>
+                        AI Suggestions — {aiSuggestionsMaterial?.title}
+                      </DialogTitle>
+                    </div>
+                    <DialogDescription>
+                      Analysis of clarity, structure, and completeness.
+                    </DialogDescription>
+                  </DialogHeader>
+                  {isAnalyzing ? (
+                    <div className="flex items-center justify-center py-12">
+                      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    </div>
+                  ) : aiSuggestionsError ? (
+                    <p className="text-sm text-destructive">
+                      {aiSuggestionsError}
+                    </p>
+                  ) : aiSuggestionsContent ? (
+                    <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground/80">
+                      {aiSuggestionsContent}
+                    </p>
+                  ) : null}
+                  <DialogFooter>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={resetAiSuggestions}
+                    >
+                      Close
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
 
               {/* ── Update Material Dialog ────────────────── */}
               <Dialog

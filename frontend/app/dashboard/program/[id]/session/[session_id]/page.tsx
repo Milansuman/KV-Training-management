@@ -528,6 +528,7 @@ export default function SessionPage() {
             sessionId={sessionId}
             user={user}
             canManage={perms.canManageSessionContent(sessionId)}
+            topics={topics}
           />
         </TabsContent>
 
@@ -541,7 +542,7 @@ export default function SessionPage() {
         </TabsContent>
 
         <TabsContent value="feedback">
-          <FeedbackSection sessionId={sessionId} />
+          <FeedbackSection sessionId={sessionId} user={user} />
         </TabsContent>
       </Tabs>
     </div>
