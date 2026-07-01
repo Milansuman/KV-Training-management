@@ -95,3 +95,13 @@ async def get_permissions_by_program_id(
         .where(ProgramPermission.deleted_at.is_(None))
     )
     return list(result.all())
+
+
+async def update_permission_role(
+    db: AsyncSession,
+    permission: ProgramPermission,
+    role: ProgramRoles,
+) -> ProgramPermission:
+    permission.role = role
+    await db.commit()
+    return permission

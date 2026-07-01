@@ -380,10 +380,25 @@ export function EventCalendar({ className, programId }: EventCalendarProps) {
       (s) => s.id === Number(info.event.id),
     );
 
+    const now = new Date();
+    const start = info.event.start;
+    const end = info.event.end;
+
+    let statusClass = "bg-muted text-muted-foreground";
+    if (start && end) {
+      if (now < start) {
+        statusClass =
+          "bg-blue-500/15 text-blue-700 dark:text-blue-400";
+      } else if (now >= start && now <= end) {
+        statusClass =
+          "bg-green-500/15 text-green-700 dark:text-green-400";
+      }
+    }
+
     return (
       <Popover>
         <PopoverTrigger className="w-full h-full">
-          <Badge className="w-full h-full text-left justify-start truncate rounded-md">
+          <Badge className={`w-full h-full text-left justify-start truncate rounded-md ${statusClass}`}>
             {info.event.title}
           </Badge>
         </PopoverTrigger>

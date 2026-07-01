@@ -81,3 +81,20 @@ async def delete_permission(
     except SQLAlchemyError as exc:
         await db.rollback()
         raise BadRequestException("Unable to delete permission") from exc
+
+
+async def update_permission_role(
+    db: AsyncSession,
+    permission_id: int,
+    role: ProgramRoles,
+) -> ProgramPermission:
+    try:
+        permission = await repository.get_permission_by_id(db=db, permission_id=permission_id)
+    except NoResultFound as exc:
+        raise NotFoundException("Permission not found") from exc
+
+    try:
+        return await repository.update_permission_role(db=db, permission=permission, role=role)
+    except SQLAlchemyError as exc:
+        await db.rollback()
+        raise BadRequestException("Unable to update permission") from exc

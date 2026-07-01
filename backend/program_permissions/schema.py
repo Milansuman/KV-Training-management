@@ -26,6 +26,18 @@ class ProgramPermissionResponse(BaseModel):
     role: ProgramRoles
 
 
+class UpdatePersonRequest(BaseModel):
+    role: ProgramRoles
+
+    @field_validator("role", mode="before")
+    @classmethod
+    def validate_role(cls, value: object) -> ProgramRoles:
+        allowed = {r.value for r in ProgramRoles}
+        if isinstance(value, str) and value.upper() not in allowed:
+            raise ValueError(f"Role must be one of: {', '.join(allowed)}")
+        return value  # type: ignore[return-value]
+
+
 class UserInProgramResponse(BaseModel):
     is_member: bool
 

@@ -36,6 +36,7 @@ import { useGetAllUsersQuery } from "@/lib/api/user/user.api";
 import {
   useListProgramPermissionsQuery,
   useAddPersonToProgramMutation,
+  useUpdatePersonInProgramMutation,
   useRemovePersonFromProgramMutation,
 } from "@/lib/api/program-permissions/program-permissions.api";
 import {
@@ -67,6 +68,8 @@ export default function UsersPage() {
 
   const [addPerson, { isLoading: isAddingPerson }] =
     useAddPersonToProgramMutation();
+  const [updatePerson, { isLoading: isUpdatingPerson }] =
+    useUpdatePersonInProgramMutation();
   const [removePerson, { isLoading: isRemovingPerson }] =
     useRemovePersonFromProgramMutation();
 
@@ -83,27 +86,41 @@ export default function UsersPage() {
 
   // ── Add User dialog ─────────────────────────────────────────────
   const [isAddOpen, setIsAddOpen] = useState(false);
-  const [newUserId, setNewUserId] = useState<number | null>(null);
+  const [selectedUserIds, setSelectedUserIds] = useState<Set<number>>(new Set());
   const [newRole, setNewRole] = useState<ProgramRole>("CANDIDATE");
 
   const usersNotInProgram = allUsers.filter(
     (u) => !programMembers.some((pm) => pm.user_id === u.id),
   );
 
+  function toggleUserSelection(userId: number) {
+    setSelectedUserIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(userId)) {
+        next.delete(userId);
+      } else {
+        next.add(userId);
+      }
+      return next;
+    });
+  }
+
   async function handleAddUser() {
-    if (!newUserId) {
-      toast.error("Please select a user.");
+    if (selectedUserIds.size === 0) {
+      toast.error("Please select at least one user.");
       return;
     }
     try {
-      await addPerson({
-        user_id: newUserId,
-        program_id: programId,
-        role: newRole,
-      }).unwrap();
-      toast.success("User added to program.");
+      for (const userId of selectedUserIds) {
+        await addPerson({
+          user_id: userId,
+          program_id: programId,
+          role: newRole,
+        }).unwrap();
+      }
+      toast.success(`${selectedUserIds.size} user(s) added to program.`);
       setIsAddOpen(false);
-      setNewUserId(null);
+      setSelectedUserIds(new Set());
       setNewRole("CANDIDATE");
     } catch (err) {
       toast.error(getErrorDetail(err));
@@ -281,8 +298,34 @@ export default function UsersPage() {
                       <TableCell>{member.user_id}</TableCell>
                       <TableCell>{member.username}</TableCell>
                       <TableCell>{member.display_name}</TableCell>
-                      <TableCell className="uppercase">
-                        {member.role}
+                      <TableCell>
+                        <Select
+                          defaultValue={member.role}
+                          disabled={isUpdatingPerson}
+                          onValueChange={async (v) => {
+                            try {
+                              await updatePerson({
+                                permissionId: member.permission_id,
+                                body: { role: v as ProgramRole },
+                              }).unwrap();
+                              toast.success(
+                                `${member.display_name}'s role updated to ${v}.`,
+                              );
+                            } catch (err) {
+                              toast.error(getErrorDetail(err));
+                            }
+                          }}
+                        >
+                          <SelectTrigger className="w-40 uppercase">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="CANDIDATE">
+                              Candidate
+                            </SelectItem>
+                            <SelectItem value="STAFF">Staff</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center justify-center gap-3">
@@ -324,73 +367,126 @@ export default function UsersPage() {
 
       {/* ── Add User Dialog ───────────────────────────────────── */}
       <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
-        <DialogContent className="sm:max-w-md font-quicksand">
+        <DialogContent className="min-w-[700px] rounded-2xl font-quicksand max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Add User to Program</DialogTitle>
+            <DialogTitle>Add User(s) to Program</DialogTitle>
             <DialogDescription>
-              Select a user and assign a program role.
+              Select users from the table below and assign a program role for
+              all selected users.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="flex flex-col gap-4 py-4">
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium">User</label>
-              <Select
-                value={newUserId ? String(newUserId) : ""}
-                onValueChange={(v) => setNewUserId(Number(v))}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a user..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {usersNotInProgram.length === 0 ? (
-                    <SelectItem value="" disabled>
-                      All users are already enrolled
-                    </SelectItem>
-                  ) : (
-                    usersNotInProgram.map((u) => (
-                      <SelectItem key={u.id} value={String(u.id)}>
-                        {u.display_name} (@{u.username})
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
+          {/* ── Role selector (applies to all selected) ── */}
+          <div className="flex items-center gap-4 py-2">
+            <label className="text-sm font-medium whitespace-nowrap">
+              Program Role
+            </label>
+            <Select
+              value={newRole}
+              onValueChange={(v) => setNewRole(v as ProgramRole)}
+            >
+              <SelectTrigger className="w-48">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="CANDIDATE">Candidate</SelectItem>
+                <SelectItem value="STAFF">Staff</SelectItem>
+              </SelectContent>
+            </Select>
 
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium">Program Role</label>
-              <Select
-                value={newRole}
-                onValueChange={(v) => setNewRole(v as ProgramRole)}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="CANDIDATE">Candidate</SelectItem>
-                  <SelectItem value="STAFF">Staff</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            <span className="ml-auto text-sm text-muted-foreground">
+              {selectedUserIds.size} selected
+            </span>
           </div>
 
-          <DialogFooter>
+          {/* ── Users table with checkboxes ── */}
+          <div className="max-h-80 overflow-y-auto rounded-xl border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-12">
+                    <Checkbox
+                      checked={
+                        usersNotInProgram.length > 0 &&
+                        usersNotInProgram.every((u) =>
+                          selectedUserIds.has(u.id),
+                        )
+                      }
+                      onCheckedChange={() => {
+                        const allSelected = usersNotInProgram.every((u) =>
+                          selectedUserIds.has(u.id),
+                        );
+                        if (allSelected) {
+                          setSelectedUserIds(new Set());
+                        } else {
+                          setSelectedUserIds(
+                            new Set(usersNotInProgram.map((u) => u.id)),
+                          );
+                        }
+                      }}
+                    />
+                  </TableHead>
+                  <TableHead>ID</TableHead>
+                  <TableHead>Username</TableHead>
+                  <TableHead>Display Name</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {usersNotInProgram.length === 0 ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={4}
+                      className="h-28 text-center text-muted-foreground"
+                    >
+                      All users are already enrolled in this program.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  usersNotInProgram.map((user) => (
+                    <TableRow
+                      key={user.id}
+                      className={
+                        selectedUserIds.has(user.id)
+                          ? "bg-muted/40"
+                          : undefined
+                      }
+                    >
+                      <TableCell>
+                        <Checkbox
+                          checked={selectedUserIds.has(user.id)}
+                          onCheckedChange={() => toggleUserSelection(user.id)}
+                        />
+                      </TableCell>
+                      <TableCell>{user.id}</TableCell>
+                      <TableCell>{user.username}</TableCell>
+                      <TableCell>{user.display_name}</TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+
+          <DialogFooter className="mt-4">
             <Button
               type="button"
               variant="outline"
-              onClick={() => setIsAddOpen(false)}
+              onClick={() => {
+                setIsAddOpen(false);
+                setSelectedUserIds(new Set());
+                setNewRole("CANDIDATE");
+              }}
             >
               Cancel
             </Button>
             <Button
               onClick={handleAddUser}
-              disabled={!newUserId || isAddingPerson}
+              disabled={selectedUserIds.size === 0 || isAddingPerson}
             >
               {isAddingPerson && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               )}
-              Add to Program
+              Add {selectedUserIds.size > 0 && `(${selectedUserIds.size})`} to Program
             </Button>
           </DialogFooter>
         </DialogContent>

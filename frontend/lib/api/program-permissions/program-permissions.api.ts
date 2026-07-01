@@ -3,6 +3,7 @@ import {
   AddPersonRequest,
   ListProgramPermissionItem,
   ProgramPermissionResponse,
+  UpdatePersonRequest,
   UserInProgramResponse,
 } from "./program-permissions.type"
 
@@ -42,6 +43,18 @@ export const programPermissionsApi = baseSlice.injectEndpoints({
       invalidatesTags: ["ProgramPermission"],
     }),
 
+    updatePersonInProgram: builder.mutation<
+      ProgramPermissionResponse,
+      { permissionId: number; body: UpdatePersonRequest }
+    >({
+      query: ({ permissionId, body }) => ({
+        url: `/program-permissions/${permissionId}`,
+        method: "PATCH",
+        body,
+      }),
+      invalidatesTags: ["ProgramPermission"],
+    }),
+
     removePersonFromProgram: builder.mutation<void, number>({
       query: (permissionId) => ({
         url: `/program-permissions/${permissionId}`,
@@ -56,5 +69,6 @@ export const {
   useListProgramPermissionsQuery,
   useCheckUserInProgramQuery,
   useAddPersonToProgramMutation,
+  useUpdatePersonInProgramMutation,
   useRemovePersonFromProgramMutation,
 } = programPermissionsApi

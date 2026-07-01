@@ -17,6 +17,10 @@ export interface UserInProgramResponse {
   is_member: boolean
 }
 
+export interface UpdatePersonRequest {
+  role: ProgramRole
+}
+
 export interface ListProgramPermissionItem {
   permission_id: number
   user_id: number

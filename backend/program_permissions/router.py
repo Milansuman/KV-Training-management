@@ -6,6 +6,7 @@ from program_permissions.schema import (
     AddPersonRequest,
     ProgramPermissionResponse,
     ProgramPermissionUserResponse,
+    UpdatePersonRequest,
     UserInProgramResponse,
 )
 from program_permissions.service import (
@@ -13,6 +14,7 @@ from program_permissions.service import (
     delete_permission,
     get_program_permissions,
     is_user_in_program,
+    update_permission_role,
 )
 
 router = APIRouter(prefix="/program-permissions", tags=["program-permissions"])
@@ -42,6 +44,19 @@ async def remove_person(
     db: AsyncSession = Depends(get_db),
 ):
     await delete_permission(db=db, permission_id=permission_id)
+
+
+@router.patch("/{permission_id}", response_model=ProgramPermissionResponse)
+async def update_person(
+    permission_id: int,
+    payload: UpdatePersonRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    return await update_permission_role(
+        db=db,
+        permission_id=permission_id,
+        role=payload.role,
+    )
 
 
 @router.post("", response_model=ProgramPermissionResponse, status_code=201)
