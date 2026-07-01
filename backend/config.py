@@ -20,8 +20,8 @@ class Config(BaseSettings):
     MINIO_BUCKET: str
     MINIO_SECURE: bool = False
 
-    # LiteLLM proxy
-    LITELLM_API_KEY: str
-    LITELLM_BASE_URL: str = "http://localhost:4000"
+    # Groq
+    GROQ_API_KEY: str
+    GROQ_BASE_URL: str = "https://api.groq.com/openai/v1"
 
 env = Config() #type: ignore

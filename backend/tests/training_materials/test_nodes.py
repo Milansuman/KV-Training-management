@@ -3,7 +3,7 @@ Tests for individual LangGraph nodes.
 
 No MinIO / network access needed — tests inject pre-fetched bytes/strings
 directly into the state, bypassing the fetch_material node entirely.
-The LLM node is mocked so no API key / LiteLLM proxy is required.
+The LLM node is mocked so no API key / Groq is required.
 """
 from pathlib import Path
 from unittest.mock import MagicMock, patch

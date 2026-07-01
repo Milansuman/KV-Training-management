@@ -177,7 +177,7 @@ Analyse the provided Markdown and give feedback on three areas only:
 2. **Structure** — is the content well-organised and logically ordered?
 3. **Completeness** — the user has provided an expected list of topics. Check whether each topic is adequately covered in the material. Call out any topics that are missing or insufficiently explained.
 
-Be concise and specific. If the material is already good in all three areas, respond with exactly:
+Be concise and specific ,1-2 sentences are enough. If the material is already good in all three areas, respond with exactly:
 "Your material is good to go."
 
 Do not use JSON, bullet lists with icons, or any other structured format — just plain text paragraphs, one per area (or the single sign-off line if everything is fine).
@@ -188,7 +188,7 @@ def analyze_with_llm(state: AgentState) -> AgentState:
     """Send normalized Markdown to GPT-4o-mini via LiteLLM and return plain-text improvement suggestions."""
     if state.get("error"):
         return state
-
+ 
     content = state.get("markdown_content", "").strip()
     if not content:
         return {**state, "error": "analyze_with_llm: no markdown content to analyze"}
@@ -200,17 +200,13 @@ def analyze_with_llm(state: AgentState) -> AgentState:
         else "No specific topics were provided."
     )
 
-    base_url = env.LITELLM_BASE_URL.rstrip("/")
-    # if not base_url.endswith("/v1"):
-    #     base_url = base_url + "/v1"
-
     client = OpenAI(
-        api_key=env.LITELLM_API_KEY,
-        base_url=base_url,
+        api_key=env.GROQ_API_KEY,
+        base_url=env.GROQ_BASE_URL,
     )
 
     response = client.chat.completions.create(
-        model="gpt-4o-mini",
+        model="llama-3.3-70b-versatile",
         messages=[
             {"role": "system", "content": _SYSTEM_PROMPT},
             {

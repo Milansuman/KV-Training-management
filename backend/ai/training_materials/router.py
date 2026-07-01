@@ -5,7 +5,7 @@ from auth.dependencies import get_current_user
 
 from .graph import agent
 
-router = APIRouter(prefix="/ai/training-materials", tags=["AI - Training Materials"])
+router = APIRouter(prefix="/ai/training-materials", tags=["Feedback Agent"])
 
 
 class AnalyzeRequest(BaseModel):
