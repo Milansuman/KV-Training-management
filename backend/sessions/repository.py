@@ -3,9 +3,10 @@ from datetime import UTC, datetime
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models.session import Session
+from models.session import Session, session_topic
 from models.topic import Topic
 from sqlalchemy.orm import selectinload, with_loader_criteria
+from feedback import service as feedback_service
 
 async def create_session(
     db: AsyncSession,
@@ -89,6 +90,10 @@ async def delete_session(
 ) -> None:
 
     session.deleted_at = datetime.now(tz=UTC)
+    await feedback_service.delete_feedback_by_session_id(
+        db=db,
+        session_id=session.id
+    )
 
     await db.commit()
 
@@ -121,3 +126,17 @@ async def remove_topic_from_session(
     await db.refresh(session)
 
     return session
+
+async def session_topic_exists(
+    db: AsyncSession,
+    session_id: int,
+    topic_id: int
+) -> bool:
+
+    result = await db.execute(
+        select(session_topic)
+        .where(session_topic.c.session_id == session_id)
+        .where(session_topic.c.topic_id == topic_id)
+    )
+
+    return result.first() is not None

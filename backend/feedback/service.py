@@ -7,7 +7,9 @@ from models.feedback import Feedback, FeedbackType
 from models.feedback_submission import FeedbackSubmission
 from models.session_permission import SessionPermission, SessionRoles
 from feedback import repository
+from sqlalchemy.exc import NoResultFound
 
+from exceptions.exceptions import NotFoundException
 
 async def create_feedback(
     db: AsyncSession,
@@ -89,3 +91,22 @@ async def get_submissions_by_session_id(
         or s.user_id == current_user_id
         or s.recipient_id == current_user_id
     ]
+
+async def delete_feedback_by_session_id(
+    db: AsyncSession,
+    session_id: int
+):
+    feedback = await get_feedback_by_session_id(
+        db=db,
+        session_id=session_id
+    )
+
+    if feedback is None:
+        raise NotFoundException(
+            "Feedback not found"
+        )
+
+    await repository.delete_feedback(
+        db=db,
+        feedback=feedback
+    )

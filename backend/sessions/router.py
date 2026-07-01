@@ -170,13 +170,8 @@ async def remove_topic_from_session(
 async def get_session_topics(
     session_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: TokenPayload = Depends(get_current_user)
 
 ):
-    if not current_user.is_admin:
-        raise UnauthorizedException(
-            "Action not allowed"
-        )
     session = await service.get_session(
         db=db,
         session_id=session_id

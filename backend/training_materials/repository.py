@@ -77,3 +77,11 @@ async def delete_material(
     material.deleted_at = datetime.now(UTC)
 
     await db.commit()
+
+async def get_session_id(db: AsyncSession, material_id: int) -> int | None:
+    result = await db.scalar(
+        select(TrainingMaterial.session_id)
+        .where(TrainingMaterial.id == material_id)
+        .where(TrainingMaterial.deleted_at.is_(None))
+    )
+    return result
