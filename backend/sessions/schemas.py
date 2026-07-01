@@ -42,5 +42,10 @@ class SessionUpdateRequest(BaseModel):
     start_datetime: datetime
     end_datetime: datetime
 
-    
+class TodaySessionResponse(BaseModel):
+    session_id: int
+    session_name: str
+    program_name: str
+    start_datetime: datetime
+    end_datetime: datetime 
     
