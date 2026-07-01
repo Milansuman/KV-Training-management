@@ -16,6 +16,16 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import {
   Popover,
   PopoverContent,
   PopoverTrigger,
@@ -87,24 +97,62 @@ export default function SessionPage() {
     }
   }
 
-  const { trainers, moderators } = useMemo(() => {
+  const { trainers, moderators, candidates } = useMemo(() => {
     const trainers: SessionUserResponse[] = [];
     const moderators: SessionUserResponse[] = [];
+    const candidates: SessionUserResponse[] = [];
     for (const u of sessionUsers) {
       if (u.role === "TRAINER") trainers.push(u);
       else if (u.role === "MODERATOR") moderators.push(u);
+      else if (u.role === "CANDIDATE") candidates.push(u);
     }
-    return { trainers, moderators };
+    return { trainers, moderators, candidates };
   }, [sessionUsers]);
 
   // ── Feedback submission dialog ────────────────────────────────────
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
   const [feedbackText, setFeedbackText] = useState("");
+  const [selectedRecipientId, setSelectedRecipientId] = useState<
+    number | null
+  >(null);
   const [submitFeedback, { isLoading: isSubmittingFeedback }] =
     useCreateFeedbackSubmissionMutation();
 
+  // Current user's role in this session
+  const mySessionRole = useMemo(() => {
+    if (!user) return null;
+    const me = sessionUsers.find((u) => u.user_id === user.id);
+    return me?.role ?? null;
+  }, [sessionUsers, user]);
+
+  // Available recipients based on role
+  const availableRecipients = useMemo(() => {
+    if (user?.is_admin || perms.isStaff) {
+      return [...trainers, ...moderators, ...candidates];
+    }
+    if (mySessionRole === "MODERATOR") {
+      return [...trainers, ...candidates];
+    }
+    if (mySessionRole === "TRAINER") {
+      return [...candidates];
+    }
+    return [];
+  }, [user, perms, mySessionRole, trainers, moderators, candidates]);
+
+  // Whether the user can select a recipient (candidates cannot)
+  const canSelectRecipient = availableRecipients.length > 0;
+
+  // Display name for the selected recipient
+  const selectedRecipientName =
+    selectedRecipientId != null
+      ? availableRecipients.find(
+          (u) => u.user_id === selectedRecipientId,
+        )?.display_name ?? null
+      : null;
+
   function resetFeedbackForm() {
     setFeedbackText("");
+    setSelectedRecipientId(null);
   }
 
   async function handleSubmitFeedback(e: React.FormEvent) {
@@ -114,7 +162,7 @@ export default function SessionPage() {
     try {
       await submitFeedback({
         user_id: user.id,
-        recipient_id: null,
+        recipient_id: selectedRecipientId,
         feedback_id: session.feedback_id,
         text: feedbackText,
       }).unwrap();
@@ -324,46 +372,142 @@ export default function SessionPage() {
                 }
               />
               <DialogContent className="sm:max-w-lg">
-                <form onSubmit={handleSubmitFeedback}>
-                  <DialogHeader>
-                    <DialogTitle>Submit Feedback</DialogTitle>
-                    <DialogDescription>
-                      Share your thoughts about this session.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="py-4">
-                    <Textarea
-                      placeholder="What did you think of the session? Any suggestions?"
-                      className="h-40"
-                      value={feedbackText}
-                      onChange={(e) => setFeedbackText(e.target.value)}
-                      rows={10}
-                      required
-                    />
+            <form onSubmit={handleSubmitFeedback}>
+              <DialogHeader>
+                <DialogTitle>Submit Feedback</DialogTitle>
+                <DialogDescription>
+                  Share your thoughts about this session.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="flex flex-col gap-4 py-4">
+                <Textarea
+                  placeholder="What did you think of the session? Any suggestions?"
+                  className="h-40"
+                  value={feedbackText}
+                  onChange={(e) => setFeedbackText(e.target.value)}
+                  rows={10}
+                  required
+                />
+
+                {canSelectRecipient && (
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="recipient">
+                      Send feedback to
+                    </Label>
+                    <Select
+                      value={selectedRecipientId?.toString() ?? ""}
+                      onValueChange={(val) =>
+                        setSelectedRecipientId(
+                          val ? Number(val) : null,
+                        )
+                      }
+                    >
+                      <SelectTrigger
+                        id="recipient"
+                        className="w-full"
+                      >
+                        <SelectValue placeholder="Select a user…">
+                          {selectedRecipientName ??
+                            "Select a user…"}
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        {mySessionRole === "MODERATOR" &&
+                          trainers.length > 0 && (
+                            <SelectGroup>
+                              <SelectLabel>
+                                Trainers
+                              </SelectLabel>
+                              {trainers.map((t) => (
+                                <SelectItem
+                                  key={t.user_id}
+                                  value={t.user_id.toString()}
+                                >
+                                  {t.display_name}
+                                </SelectItem>
+                              ))}
+                            </SelectGroup>
+                          )}
+                        {candidates.length > 0 && (
+                          <SelectGroup>
+                            {(mySessionRole === "MODERATOR" ||
+                              mySessionRole === "TRAINER" ||
+                              user?.is_admin ||
+                              perms.isStaff) && (
+                              <SelectLabel>
+                                Candidates
+                              </SelectLabel>
+                            )}
+                            {candidates.map((c) => (
+                              <SelectItem
+                                key={c.user_id}
+                                value={c.user_id.toString()}
+                              >
+                                {c.display_name}
+                              </SelectItem>
+                            ))}
+                          </SelectGroup>
+                        )}
+                        {(user?.is_admin || perms.isStaff) &&
+                          moderators.length > 0 && (
+                            <SelectGroup>
+                              <SelectLabel>
+                                Moderators
+                              </SelectLabel>
+                              {moderators.map((m) => (
+                                <SelectItem
+                                  key={m.user_id}
+                                  value={m.user_id.toString()}
+                                >
+                                  {m.display_name}
+                                </SelectItem>
+                              ))}
+                            </SelectGroup>
+                          )}
+                        {(user?.is_admin || perms.isStaff) &&
+                          trainers.length > 0 && (
+                            <SelectGroup>
+                              <SelectLabel>
+                                Trainers
+                              </SelectLabel>
+                              {trainers.map((t) => (
+                                <SelectItem
+                                  key={t.user_id}
+                                  value={t.user_id.toString()}
+                                >
+                                  {t.display_name}
+                                </SelectItem>
+                              ))}
+                            </SelectGroup>
+                          )}
+                      </SelectContent>
+                    </Select>
                   </div>
-                  <DialogFooter>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => {
-                        setIsFeedbackOpen(false);
-                        resetFeedbackForm();
-                      }}
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      type="submit"
-                      disabled={!feedbackText.trim() || isSubmittingFeedback}
-                    >
-                      {isSubmittingFeedback && (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      )}
-                      Submit
-                    </Button>
-                  </DialogFooter>
-                </form>
-              </DialogContent>
+                )}
+              </div>
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setIsFeedbackOpen(false);
+                    resetFeedbackForm();
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={!feedbackText.trim() || isSubmittingFeedback}
+                >
+                  {isSubmittingFeedback && (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  )}
+                  Submit
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
             </Dialog>
           </div>
         </div>

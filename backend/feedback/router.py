@@ -26,5 +26,7 @@ async def get_submissions_by_session(
 ):
     return await service.get_submissions_by_session_id(
         db=db,
-        session_id=session_id
+        session_id=session_id,
+        current_user_id=int(current_user.sub),
+        is_admin=current_user.is_admin
     )
