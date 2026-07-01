@@ -257,3 +257,23 @@ async def remove_topic_from_session(
         session=session,
         topic=topic
     )
+
+async def get_today_sessions_for_user(
+    db: AsyncSession,
+    user_id: int
+):
+    rows = await repository.get_today_sessions_for_user(
+        db=db,
+        user_id=user_id
+    )
+
+    return [
+        {
+            "session_id": row.session_id,
+            "session_name": row.session_name,
+            "program_name": row.program_name,
+            "start_datetime": row.start_datetime,
+            "end_datetime": row.end_datetime,
+        }
+        for row in rows
+    ]
