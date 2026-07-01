@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import { useParams } from "next/navigation";
 import { GraduationCap, Loader2, UserCog, Users } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -22,7 +23,10 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 
-import { useGetSessionQuery } from "@/lib/api/sessions/sessions.api";
+import {
+  useGetSessionQuery,
+  useGetSessionTopicsQuery,
+} from "@/lib/api/sessions/sessions.api";
 import { useGetMyselfQuery } from "@/lib/api/user/user.api";
 import { useGetSessionUsersQuery, useAddSessionPermissionMutation } from "@/lib/api/session-permissions/session-permissions.api";
 import { useCreateFeedbackSubmissionMutation } from "@/lib/api/feedback-submissions/feedback-submissions.api";
@@ -59,6 +63,7 @@ export default function SessionPage() {
     isLoading: sessionLoading,
     isError: sessionError,
   } = useGetSessionQuery(sessionId);
+  const { data: topics = [] } = useGetSessionTopicsQuery(sessionId);
   const { data: user } = useGetMyselfQuery();
 
   // ── Session users (trainers / moderators) ────────────────────────
@@ -146,6 +151,17 @@ export default function SessionPage() {
         <div className="flex flex-col gap-4 lg:max-w-2/3">
           <h1 className="text-4xl text-foreground">{session.title}</h1>
           <p className="text-muted-foreground">{session.description}</p>
+
+          {topics.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2">
+              {topics.map((topic) => (
+                <Badge key={topic.id} variant="secondary">
+                  {topic.title}
+                </Badge>
+              ))}
+            </div>
+          )}
+
           <p className="text-sm text-muted-foreground">
             {formatDateTime(session.start_datetime)} —{" "}
             {formatDateTime(session.end_datetime)}

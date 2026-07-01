@@ -26,6 +26,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import {
+  InputGroup,
+  InputGroupInput,
+} from "@/components/ui/input-group";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { EventContentArg } from "@fullcalendar/core/index.js";
@@ -34,10 +38,13 @@ import {
   useCreateSessionMutation,
   useUpdateSessionMutation,
   useDeleteSessionMutation,
+  useAssignTopicToSessionMutation,
+  useRemoveTopicFromSessionMutation,
 } from "@/lib/api/sessions/sessions.api";
+import { useCreateTopicMutation } from "@/lib/api/topics/topics.api";
 import { useGetMyselfQuery } from "@/lib/api/user/user.api";
 import { toast } from "sonner";
-import { Loader2, Pencil, Trash2, TriangleAlert } from "lucide-react";
+import { Loader2, Pencil, Trash2, TriangleAlert, X } from "lucide-react";
 import Link from "next/link";
 
 import {
@@ -70,12 +77,81 @@ const toDatetimeLocalString = (date: Date) => {
   return `${year}-${month}-${day}T${hours}:${minutes}`;
 };
 
+// ── Topics input component ─────────────────────────────────────────
+function TopicsInput({
+  value = [],
+  onChange,
+  disabled,
+  placeholder,
+}: {
+  value: string[];
+  onChange: (topics: string[]) => void;
+  disabled?: boolean;
+  placeholder?: string;
+}) {
+  const [inputValue, setInputValue] = React.useState("");
+
+  const addTopic = () => {
+    const trimmed = inputValue.trim();
+    if (trimmed && !value.includes(trimmed)) {
+      onChange([...value, trimmed]);
+    }
+    setInputValue("");
+  };
+
+  const removeTopic = (index: number) => {
+    onChange(value.filter((_, i) => i !== index));
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === " " || e.key === "Enter") {
+      e.preventDefault();
+      addTopic();
+    }
+    if (e.key === "Backspace" && !inputValue && value.length > 0) {
+      removeTopic(value.length - 1);
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <Label>Topics</Label>
+      <InputGroup className="flex-wrap h-auto min-h-8 gap-1 px-1 py-1">
+        {value.map((topic, i) => (
+          <Badge key={i} variant="secondary" className="gap-1 shrink-0">
+            {topic}
+            <button
+              type="button"
+              onClick={() => removeTopic(i)}
+              disabled={disabled}
+              className="ml-0.5 rounded-full outline-none ring-offset-background transition-colors hover:bg-muted-foreground/20 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
+            >
+              <X className="h-3 w-3" />
+              <span className="sr-only">Remove {topic}</span>
+            </button>
+          </Badge>
+        ))}
+        <InputGroupInput
+          value={inputValue}
+          onChange={(e) => setInputValue(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder={
+            placeholder ??
+            (value.length === 0 ? "Type a topic and press space..." : "")
+          }
+          disabled={disabled}
+          className="min-w-20 flex-1"
+        />
+      </InputGroup>
+    </div>
+  );
+}
+
 const sessionSchema = z.object({
   title: z.string().min(1, "Title is required"),
   description: z.string().min(1, "Description is required"),
   start_datetime: z.string().min(1, "Start time is required"),
   end_datetime: z.string().min(1, "End time is required"),
-  topics: z.string().optional(),
 });
 
 type SessionFormValues = z.infer<typeof sessionSchema>;
@@ -86,6 +162,11 @@ interface EventCalendarProps {
 }
 
 // ── Session data shape from the API ─────────────────────────────────
+interface TopicData {
+  id: number;
+  title: string;
+}
+
 interface SessionData {
   id: number;
   title: string;
@@ -93,6 +174,7 @@ interface SessionData {
   start_datetime: string;
   end_datetime: string;
   program_id: number;
+  topics?: TopicData[];
 }
 
 export function EventCalendar({ className, programId }: EventCalendarProps) {
@@ -103,6 +185,9 @@ export function EventCalendar({ className, programId }: EventCalendarProps) {
   const [createSession, { isLoading: isCreating }] = useCreateSessionMutation();
   const [updateSession, { isLoading: isUpdating }] = useUpdateSessionMutation();
   const [deleteSession, { isLoading: isDeleting }] = useDeleteSessionMutation();
+  const [createTopic] = useCreateTopicMutation();
+  const [assignTopicToSession] = useAssignTopicToSessionMutation();
+  const [removeTopicFromSession] = useRemoveTopicFromSessionMutation();
 
   const events = React.useMemo(() => {
     return dbSessions.map((session) => ({
@@ -126,6 +211,7 @@ export function EventCalendar({ className, programId }: EventCalendarProps) {
 
   // ── Create dialog ────────────────────────────────────────────────
   const [isCreateOpen, setIsCreateOpen] = React.useState(false);
+  const [createTopics, setCreateTopics] = React.useState<string[]>([]);
 
   const createForm = useForm<SessionFormValues>({
     resolver: zodResolver(sessionSchema),
@@ -134,7 +220,6 @@ export function EventCalendar({ className, programId }: EventCalendarProps) {
       description: "",
       start_datetime: "",
       end_datetime: "",
-      topics: "",
     },
   });
 
@@ -153,15 +238,15 @@ export function EventCalendar({ className, programId }: EventCalendarProps) {
       description: "",
       start_datetime: toDatetimeLocalString(start),
       end_datetime: toDatetimeLocalString(end),
-      topics: "",
     });
+    setCreateTopics([]);
 
     setIsCreateOpen(true);
   };
 
   const handleCreateSubmit = async (data: SessionFormValues) => {
     try {
-      await createSession({
+      const session = await createSession({
         title: data.title,
         description: data.description,
         start_datetime: new Date(data.start_datetime).toISOString(),
@@ -169,8 +254,18 @@ export function EventCalendar({ className, programId }: EventCalendarProps) {
         program_id: programId,
       }).unwrap();
 
+      // Create topics and assign them to the session
+      for (const topicTitle of createTopics) {
+        const topic = await createTopic({ title: topicTitle }).unwrap();
+        await assignTopicToSession({
+          sessionId: session.id,
+          topicId: topic.id,
+        }).unwrap();
+      }
+
       toast.success("Session scheduled successfully!");
       setIsCreateOpen(false);
+      setCreateTopics([]);
     } catch (err: any) {
       toast.error(err?.data?.detail || "Failed to schedule session");
     }
@@ -180,6 +275,8 @@ export function EventCalendar({ className, programId }: EventCalendarProps) {
   const [editingSession, setEditingSession] = React.useState<SessionData | null>(null);
   const isEditOpen = editingSession !== null;
 
+  const [editTopics, setEditTopics] = React.useState<string[]>([]);
+
   const editForm = useForm<SessionFormValues>({
     resolver: zodResolver(sessionSchema),
     defaultValues: {
@@ -187,7 +284,6 @@ export function EventCalendar({ className, programId }: EventCalendarProps) {
       description: "",
       start_datetime: "",
       end_datetime: "",
-      topics: "",
     },
   });
 
@@ -198,13 +294,16 @@ export function EventCalendar({ className, programId }: EventCalendarProps) {
       description: session.description,
       start_datetime: toDatetimeLocalString(new Date(session.start_datetime)),
       end_datetime: toDatetimeLocalString(new Date(session.end_datetime)),
-      topics: "",
     });
+    const sessionTopics: string[] =
+      session.topics?.map((t: TopicData) => t.title) ?? [];
+    setEditTopics(sessionTopics);
   }
 
   function closeEditDialog() {
     setEditingSession(null);
     editForm.reset();
+    setEditTopics([]);
   }
 
   const handleEditSubmit = async (data: SessionFormValues) => {
@@ -219,6 +318,31 @@ export function EventCalendar({ className, programId }: EventCalendarProps) {
           end_datetime: new Date(data.end_datetime).toISOString(),
         },
       }).unwrap();
+
+      // Diff existing topics with the new topic list
+      const existingTopics: TopicData[] = editingSession.topics ?? [];
+      const existingTitles = existingTopics.map((t) => t.title);
+
+      // Remove topics the user deleted
+      for (const existingTopic of existingTopics) {
+        if (!editTopics.includes(existingTopic.title)) {
+          await removeTopicFromSession({
+            sessionId: editingSession.id,
+            topicId: existingTopic.id,
+          }).unwrap();
+        }
+      }
+
+      // Create and assign new topics
+      for (const newTitle of editTopics) {
+        if (!existingTitles.includes(newTitle)) {
+          const topic = await createTopic({ title: newTitle }).unwrap();
+          await assignTopicToSession({
+            sessionId: editingSession.id,
+            topicId: topic.id,
+          }).unwrap();
+        }
+      }
 
       toast.success("Session updated successfully!");
       closeEditDialog();
@@ -411,6 +535,12 @@ export function EventCalendar({ className, programId }: EventCalendarProps) {
               </div>
             </div>
 
+            <TopicsInput
+              value={createTopics}
+              onChange={setCreateTopics}
+              disabled={isCreating}
+            />
+
             <div className="flex justify-end gap-2 mt-4">
               <Button
                 type="button"
@@ -480,6 +610,12 @@ export function EventCalendar({ className, programId }: EventCalendarProps) {
                 />
               </div>
             </div>
+
+            <TopicsInput
+              value={editTopics}
+              onChange={setEditTopics}
+              disabled={isUpdating}
+            />
 
             <DialogFooter>
               <Button
