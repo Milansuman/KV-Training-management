@@ -9,7 +9,7 @@ class TrainingMaterialResponse(BaseModel):
 
     id: int
     title: str
-    url: str
+    url: HttpUrl
     material_type: str
     session_id: int
     user_id: int
