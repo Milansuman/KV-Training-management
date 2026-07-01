@@ -30,6 +30,8 @@ import {
   useUpdateProgramMutation,
   useDeleteProgramMutation,
 } from "@/lib/api/programs/programs.api";
+import { useGetUserSessionsQuery } from "@/lib/api/sessions/sessions.api";
+import type { UserSessionResponse } from "@/lib/api/sessions/sessions.type";
 import { toast } from "sonner";
 import AnimatedContent from "@/components/ui/AnimatedContent";
 import { ProgramProgressItem } from "@/lib/api/programs/programs.type";
@@ -49,7 +51,7 @@ import {
 } from "@/components/ui/chart";
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Dummy session data  (replace with real API hook later)
+// Session item with computed status
 // ─────────────────────────────────────────────────────────────────────────────
 interface SessionItem {
   session_name: string;
@@ -57,20 +59,25 @@ interface SessionItem {
   status: "done" | "live" | "todo";
 }
 
-const DUMMY_SESSIONS: SessionItem[] = [
-  { session_name: "ORM Basics",            program_name: "Freshers Training",    status: "done" },
-  { session_name: "Alembic Migrations",    program_name: "Freshers Training",    status: "done" },
-  { session_name: "FastAPI Intro",         program_name: "Freshers Training",    status: "live" },
-  { session_name: "Authentication",        program_name: "Freshers Training",    status: "todo" },
-  { session_name: "Testing & CI",          program_name: "Freshers Training",    status: "todo" },
-  { session_name: "Agent Harness",         program_name: "AI Advanced Training", status: "todo" },
-  { session_name: "LLM Foundations",       program_name: "AI Advanced Training", status: "todo" },
-  { session_name: "Prompt Engineering",    program_name: "AI Advanced Training", status: "todo" },
-  { session_name: "RAG Pipelines",         program_name: "AI Advanced Training", status: "todo" },
-  { session_name: "Routing & Deps",        program_name: "FastAPI Workshop",     status: "done" },
-  { session_name: "JWT Auth",              program_name: "FastAPI Workshop",     status: "done" },
-  { session_name: "Background Tasks",      program_name: "FastAPI Workshop",     status: "done" },
-];
+function computeSessionStatus(
+  startDatetime: string,
+  endDatetime: string
+): SessionItem["status"] {
+  const now = new Date();
+  const start = new Date(startDatetime);
+  const end = new Date(endDatetime);
+  if (now < start) return "todo";
+  if (now > end) return "done";
+  return "live";
+}
+
+function toSessionItem(s: UserSessionResponse): SessionItem {
+  return {
+    session_name: s.session_name,
+    program_name: s.program_name,
+    status: computeSessionStatus(s.start_datetime, s.end_datetime),
+  };
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -237,10 +244,17 @@ export default function Dashboard() {
     Upcoming:  { label: "Upcoming",  color: "var(--chart-3)" },
   } satisfies ChartConfig;
 
+  // ── sessions for the rail ──────────────────────────────────────────────
+  const { data: userSessions = [] } = useGetUserSessionsQuery(
+    user_details?.id ?? 0,
+    { skip: !user_details }
+  );
+
   // group sessions by program for the rail
-  const sessionsByProgram = DUMMY_SESSIONS.reduce<Record<string, SessionItem[]>>((acc, s) => {
-    if (!acc[s.program_name]) acc[s.program_name] = [];
-    acc[s.program_name].push(s);
+  const sessionsByProgram = userSessions.reduce<Record<string, SessionItem[]>>((acc, s) => {
+    const item = toSessionItem(s);
+    if (!acc[item.program_name]) acc[item.program_name] = [];
+    acc[item.program_name].push(item);
     return acc;
   }, {});
   const sessionGroups = Object.entries(sessionsByProgram); // [ [programName, sessions[]] ]

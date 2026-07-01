@@ -48,4 +48,11 @@ class TodaySessionResponse(BaseModel):
     program_name: str
     start_datetime: datetime
     end_datetime: datetime 
+
+class UserSessionResponse(BaseModel):
+    session_id: int
+    session_name: str
+    program_name: str
+    start_datetime: datetime
+    end_datetime: datetime
     

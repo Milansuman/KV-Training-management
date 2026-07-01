@@ -8,7 +8,7 @@ from auth.dependencies import get_current_user
 
 from exceptions.exceptions import UnauthorizedException
 from sessions import service
-from sessions.schemas import SessionCreateRequest, SessionResponse, SessionResponseWithTopics, SessionUpdateRequest, TodaySessionResponse
+from sessions.schemas import SessionCreateRequest, SessionResponse, SessionResponseWithTopics, SessionUpdateRequest, TodaySessionResponse, UserSessionResponse
 
 
 router = APIRouter(
@@ -178,6 +178,20 @@ async def get_session_topics(
     )
 
     return session.topics
+
+@router.get(
+    "/user/{user_id}",
+    response_model=list[UserSessionResponse]
+)
+async def get_sessions_for_user(
+    user_id: int,
+    db: AsyncSession = Depends(get_db)
+):
+    return await service.get_sessions_for_user(
+        db=db,
+        user_id=user_id
+    )
+
 
 @router.get(
     "/users/{user_id}/today-sessions",

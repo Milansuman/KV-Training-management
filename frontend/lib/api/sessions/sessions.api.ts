@@ -5,6 +5,7 @@ import {
   SessionResponseWithTopics,
   SessionUpdateRequest,
   TopicResponse,
+  UserSessionResponse,
 } from "./sessions.type"
 
 export const sessionsApi = baseSlice.injectEndpoints({
@@ -90,6 +91,14 @@ export const sessionsApi = baseSlice.injectEndpoints({
       invalidatesTags: ["Session", "Topic"],
     }),
 
+    getUserSessions: builder.query<UserSessionResponse[], number>({
+      query: (userId) => ({
+        url: `/sessions/user/${userId}`,
+        method: "GET",
+      }),
+      providesTags: ["Session"],
+    }),
+
     getSessionTopics: builder.query<TopicResponse[], number>({
       query: (sessionId) => ({
         url: `/sessions/${sessionId}/topics`,
@@ -109,5 +118,6 @@ export const {
   useDeleteSessionMutation,
   useAssignTopicToSessionMutation,
   useRemoveTopicFromSessionMutation,
+  useGetUserSessionsQuery,
   useGetSessionTopicsQuery,
 } = sessionsApi

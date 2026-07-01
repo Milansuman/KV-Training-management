@@ -188,3 +188,38 @@ async def get_today_sessions_for_user(
 
     return result.all()
 
+
+async def get_sessions_for_user(
+    db: AsyncSession,
+    user_id: int
+):
+    result = await db.execute(
+        select(
+            Session.id.label("session_id"),
+            Session.title.label("session_name"),
+            Program.title.label("program_name"),
+            Session.start_datetime,
+            Session.end_datetime,
+        )
+        .join(
+            Program,
+            Session.program_id == Program.id
+        )
+        .join(
+            ProgramPermission,
+            (ProgramPermission.program_id == Program.id)
+        )
+        .join(
+            SessionPermission,
+            (SessionPermission.session_id == Session.id)
+        )
+        .where(ProgramPermission.user_id == user_id)
+        .where(SessionPermission.user_id == user_id)
+        .where(Program.deleted_at.is_(None))
+        .where(Session.deleted_at.is_(None))
+        .where(ProgramPermission.deleted_at.is_(None))
+        .where(SessionPermission.deleted_at.is_(None))
+    )
+
+    return result.all()
+

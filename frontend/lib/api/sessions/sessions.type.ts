@@ -31,3 +31,11 @@ export interface TopicResponse {
 export interface SessionResponseWithTopics extends SessionResponse {
   topics: TopicResponse[];
 }
+
+export interface UserSessionResponse {
+  session_id: number;
+  session_name: string;
+  program_name: string;
+  start_datetime: string;
+  end_datetime: string;
+}
