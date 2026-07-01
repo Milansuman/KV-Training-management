@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { Suspense, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useGoogleHandshakeMutation } from "@/lib/api/auth/auth.api";
 import { toast } from "sonner";
 
-export default function GoogleVerifyPage() {
+function GoogleVerifyContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [googleHandshake] = useGoogleHandshakeMutation();
@@ -47,5 +47,25 @@ export default function GoogleVerifyPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function GoogleVerifyPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="flex flex-col items-center gap-4">
+            <div
+              className="h-10 w-10 animate-spin rounded-full border-4 border-muted border-t-primary"
+              aria-label="Loading"
+            />
+            <p className="text-muted-foreground text-sm">Loading…</p>
+          </div>
+        </div>
+      }
+    >
+      <GoogleVerifyContent />
+    </Suspense>
   );
 }
