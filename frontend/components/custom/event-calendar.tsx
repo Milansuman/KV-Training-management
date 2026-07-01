@@ -383,7 +383,7 @@ export function EventCalendar({ className, programId }: EventCalendarProps) {
     return (
       <Popover>
         <PopoverTrigger className="w-full h-full">
-          <Badge className="w-full h-full text-left justify-start truncate">
+          <Badge className="w-full h-full text-left justify-start truncate rounded-md">
             {info.event.title}
           </Badge>
         </PopoverTrigger>
