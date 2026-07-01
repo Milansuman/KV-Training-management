@@ -22,6 +22,7 @@ from feedback_submission.router import router as feedback_submission_router
 from feedback.router import router as feedback_router
 from assignment.router import router as assignment_router
 from assignment_submission.router import router as assignment_submission_router
+from ai.training_materials.router import router as training_materials_ai_router
 
 logging.basicConfig(
     level=logging.INFO,
@@ -66,6 +67,7 @@ app.include_router(feedback_submission_router)
 app.include_router(feedback_router)
 app.include_router(assignment_router)
 app.include_router(assignment_submission_router)
+app.include_router(training_materials_ai_router)
 
 def main():
     uvicorn.run(

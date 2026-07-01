@@ -1,8 +1,9 @@
+from pathlib import Path
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Config(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=".env"
+        env_file=Path(__file__).parent / ".env"
     )
 
     DATABASE_URL: str
@@ -18,5 +19,9 @@ class Config(BaseSettings):
     MINIO_SECRET_KEY: str
     MINIO_BUCKET: str
     MINIO_SECURE: bool = False
+
+    # LiteLLM proxy
+    LITELLM_API_KEY: str
+    LITELLM_BASE_URL: str = "http://localhost:4000"
 
 env = Config() #type: ignore

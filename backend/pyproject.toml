@@ -12,6 +12,7 @@ dependencies = [
     "httpx2>=2.5.0",
     "itsdangerous>=2.2.0",
     "minio>=7.2.20",
+    "openai>=2.44.0",
     "pydantic-settings>=2.14.2",
     "pyjwt>=2.13.0",
     "python-multipart>=0.0.32",
