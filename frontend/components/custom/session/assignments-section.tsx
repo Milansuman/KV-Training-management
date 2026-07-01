@@ -84,12 +84,14 @@ interface AssignmentsSectionProps {
   sessionId: number;
   user: UserResponse | undefined;
   canManage: boolean;
+  sessionRole?: string | null;
 }
 
 export default function AssignmentsSection({
   sessionId,
   user,
   canManage,
+  sessionRole,
 }: AssignmentsSectionProps) {
   const { data: allUsers = [] } = useGetAllUsersQuery();
 
@@ -389,16 +391,18 @@ export default function AssignmentsSection({
                   </div>
                 </CardContent>
                 <CardFooter className="flex-col gap-2">
-                  <Button
-                    size="sm"
-                    className="w-full"
-                    onClick={() =>
-                      handleOpenCreateSubmission(assignment.id)
-                    }
-                  >
-                    <Plus data-icon="inline-start" />
-                    Submit
-                  </Button>
+                  {!canManage && sessionRole !== "MODERATOR" && (
+                    <Button
+                      size="sm"
+                      className="w-full"
+                      onClick={() =>
+                        handleOpenCreateSubmission(assignment.id)
+                      }
+                    >
+                      <Plus data-icon="inline-start" />
+                      Submit
+                    </Button>
+                  )}
                   <Button
                     size="sm"
                     variant="secondary"
@@ -467,7 +471,7 @@ export default function AssignmentsSection({
                         <Input
                           id="update-due"
                           type="datetime-local"
-                          value={updateDueAt}
+                          value={updateDueAt.replace("Z", "")}
                           onChange={(e) => setUpdateDueAt(e.target.value)}
                           required
                         />

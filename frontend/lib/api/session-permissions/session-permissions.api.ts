@@ -15,16 +15,7 @@ export const sessionPermissionsApi = baseSlice.injectEndpoints({
         url: `/session-permissions/program/${programId}`,
         method: "GET",
       }),
-      providesTags: (result, error, programId) =>
-        result
-          ? [
-              { type: "SessionPermission" as const, id: `PROGRAM_${programId}` },
-              ...result.map(({ id }) => ({
-                type: "SessionPermission" as const,
-                id,
-              })),
-            ]
-          : [{ type: "SessionPermission" as const, id: `PROGRAM_${programId}` }],
+      providesTags: ["SessionPermission"],
     }),
 
     getSessionsWithRole: builder.query<
@@ -35,24 +26,7 @@ export const sessionPermissionsApi = baseSlice.injectEndpoints({
         url: `/session-permissions/program/${programId}/user/${userId}`,
         method: "GET",
       }),
-      providesTags: (result, error, { programId, userId }) =>
-        result
-          ? [
-              {
-                type: "SessionPermission" as const,
-                id: `PROGRAM_${programId}_USER_${userId}`,
-              },
-              ...result.map(({ id }) => ({
-                type: "SessionPermission" as const,
-                id,
-              })),
-            ]
-          : [
-              {
-                type: "SessionPermission" as const,
-                id: `PROGRAM_${programId}_USER_${userId}`,
-              },
-            ],
+      providesTags: ["SessionPermission"],
     }),
 
     addSessionPermission: builder.mutation<
@@ -76,10 +50,7 @@ export const sessionPermissionsApi = baseSlice.injectEndpoints({
         method: "PATCH",
         body,
       }),
-      invalidatesTags: (result, error, { permissionId }) => [
-        "SessionPermission",
-        { type: "SessionPermission" as const, id: permissionId },
-      ],
+      invalidatesTags: ["SessionPermission"],
     }),
 
     getSessionUsers: builder.query<SessionUserResponse[], number>({
@@ -87,16 +58,7 @@ export const sessionPermissionsApi = baseSlice.injectEndpoints({
         url: `/session-permissions/session/${sessionId}`,
         method: "GET",
       }),
-      providesTags: (result, error, sessionId) =>
-        result
-          ? [
-              { type: "SessionPermission" as const, id: `SESSION_${sessionId}` },
-              ...result.map(({ id }) => ({
-                type: "SessionPermission" as const,
-                id,
-              })),
-            ]
-          : [{ type: "SessionPermission" as const, id: `SESSION_${sessionId}` }],
+      providesTags: ["SessionPermission"],
     }),
 
     deleteSessionPermission: builder.mutation<void, number>({
@@ -104,10 +66,7 @@ export const sessionPermissionsApi = baseSlice.injectEndpoints({
         url: `/session-permissions/${permissionId}`,
         method: "DELETE",
       }),
-      invalidatesTags: (result, error, permissionId) => [
-        "SessionPermission",
-        { type: "SessionPermission" as const, id: permissionId },
-      ],
+      invalidatesTags: ["SessionPermission"],
     }),
   }),
 })

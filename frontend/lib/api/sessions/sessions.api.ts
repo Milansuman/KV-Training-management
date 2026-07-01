@@ -14,10 +14,7 @@ export const sessionsApi = baseSlice.injectEndpoints({
         url: "/sessions",
         method: "GET",
       }),
-      providesTags: (result) =>
-        result
-          ? ["Session", ...result.map(({ id }) => ({ type: "Session" as const, id }))]
-          : ["Session"],
+      providesTags: ["Session"],
     }),
 
     getSession: builder.query<SessionResponse, number>({
@@ -25,9 +22,7 @@ export const sessionsApi = baseSlice.injectEndpoints({
         url: `/sessions/${sessionId}`,
         method: "GET",
       }),
-      providesTags: (result, error, sessionId) => [
-        { type: "Session" as const, id: sessionId },
-      ],
+      providesTags: ["Session"],
     }),
 
     getSessionsByProgramId: builder.query<
@@ -38,13 +33,7 @@ export const sessionsApi = baseSlice.injectEndpoints({
         url: `/sessions/program/${programId}`,
         method: "GET",
       }),
-      providesTags: (result, error, programId) =>
-        result
-          ? [
-              { type: "Session" as const, id: `PROGRAM_${programId}` },
-              ...result.map(({ id }) => ({ type: "Session" as const, id })),
-            ]
-          : [{ type: "Session" as const, id: `PROGRAM_${programId}` }],
+      providesTags: ["Session"],
     }),
 
     createSession: builder.mutation<
@@ -56,18 +45,7 @@ export const sessionsApi = baseSlice.injectEndpoints({
         method: "POST",
         body,
       }),
-      invalidatesTags: (result) =>
-        result
-          ? [
-              "Session",
-              {
-                type: "Session" as const,
-                id: `PROGRAM_${result.program_id}`,
-              },
-              { type: "Program" as const, id: result.program_id },
-              "Program",
-            ]
-          : ["Session"],
+      invalidatesTags: ["Session"],
     }),
 
     updateSession: builder.mutation<
@@ -79,17 +57,7 @@ export const sessionsApi = baseSlice.injectEndpoints({
         method: "PUT",
         body,
       }),
-      invalidatesTags: (result, error, { sessionId }) =>
-        result
-          ? [
-              "Session",
-              { type: "Session" as const, id: sessionId },
-              {
-                type: "Session" as const,
-                id: `PROGRAM_${result.program_id}`,
-              },
-            ]
-          : ["Session", { type: "Session" as const, id: sessionId }],
+      invalidatesTags: ["Session"],
     }),
 
     deleteSession: builder.mutation<{ message: string }, number>({
@@ -97,11 +65,7 @@ export const sessionsApi = baseSlice.injectEndpoints({
         url: `/sessions/${sessionId}`,
         method: "DELETE",
       }),
-      invalidatesTags: (result, error, sessionId) => [
-        "Session",
-        { type: "Session" as const, id: sessionId },
-        "Program",
-      ],
+      invalidatesTags: ["Session"],
     }),
 
     assignTopicToSession: builder.mutation<
@@ -112,11 +76,7 @@ export const sessionsApi = baseSlice.injectEndpoints({
         url: `/sessions/${sessionId}/topics/${topicId}`,
         method: "POST",
       }),
-      invalidatesTags: (result, error, { sessionId }) => [
-        { type: "Session" as const, id: sessionId },
-        "Session",
-        "Topic",
-      ],
+      invalidatesTags: ["Session", "Topic"],
     }),
 
     removeTopicFromSession: builder.mutation<
@@ -127,11 +87,7 @@ export const sessionsApi = baseSlice.injectEndpoints({
         url: `/sessions/${sessionId}/topics/${topicId}`,
         method: "DELETE",
       }),
-      invalidatesTags: (result, error, { sessionId }) => [
-        { type: "Session" as const, id: sessionId },
-        "Session",
-        "Topic",
-      ],
+      invalidatesTags: ["Session", "Topic"],
     }),
 
     getSessionTopics: builder.query<TopicResponse[], number>({
@@ -139,13 +95,7 @@ export const sessionsApi = baseSlice.injectEndpoints({
         url: `/sessions/${sessionId}/topics`,
         method: "GET",
       }),
-      providesTags: (result, error, sessionId) =>
-        result
-          ? [
-              { type: "Topic" as const, id: sessionId },
-              ...result.map(({ id }) => ({ type: "Topic" as const, id })),
-            ]
-          : [{ type: "Topic" as const, id: sessionId }],
+      providesTags: ["Topic"],
     }),
   }),
 })

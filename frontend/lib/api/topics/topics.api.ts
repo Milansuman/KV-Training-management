@@ -12,17 +12,14 @@ export const topicsApi = baseSlice.injectEndpoints({
         url: "/topics",
         method: "GET",
       }),
-      providesTags: (result) =>
-        result
-          ? ["Topic", ...result.map(({ id }) => ({ type: "Topic" as const, id }))]
-          : ["Topic"],
+      providesTags: ["Topic"],
     }),
     getTopic: builder.query<TopicResponse, number>({
       query: (topicId) => ({
         url: `/topics/${topicId}`,
         method: "GET",
       }),
-      providesTags: (result, error, topicId) => [{ type: "Topic" as const, id: topicId }],
+      providesTags: ["Topic"],
     }),
     createTopic: builder.mutation<TopicResponse, TopicCreateRequest>({
       query: (body) => ({
@@ -38,10 +35,7 @@ export const topicsApi = baseSlice.injectEndpoints({
         method: "PATCH",
         body,
       }),
-      invalidatesTags: (result, error, { topicId }) => [
-        "Topic",
-        { type: "Topic" as const, id: topicId },
-      ],
+      invalidatesTags: ["Topic"],
     }),
     deleteTopic: builder.mutation<{ message: string }, number>({
       query: (topicId) => ({

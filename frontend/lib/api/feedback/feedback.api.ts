@@ -11,13 +11,7 @@ export const feedbackApi = baseSlice.injectEndpoints({
         url: `/feedback/session/${sessionId}`,
         method: "GET",
       }),
-      providesTags: (result, error, sessionId) =>
-        result
-          ? [
-              { type: "Feedback" as const, id: sessionId },
-              ...result.map(({ id }) => ({ type: "Feedback" as const, id })),
-            ]
-          : [{ type: "Feedback" as const, id: sessionId }],
+      providesTags: ["Feedback"],
     }),
   }),
 })

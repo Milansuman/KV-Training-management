@@ -392,6 +392,7 @@ export default function SessionPage() {
             sessionId={sessionId}
             user={user}
             canManage={perms.canManageSessionContent(sessionId)}
+            sessionRole={perms.getSessionRole(sessionId)}
           />
         </TabsContent>
 

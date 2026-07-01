@@ -24,10 +24,7 @@ const userApi = baseSlice.injectEndpoints({
         url: "/user",
         method: "GET",
       }),
-      providesTags: (result) =>
-        result
-          ? ["User", ...result.map(({ id }) => ({ type: "User" as const, id }))]
-          : ["User"],
+      providesTags: ["User"],
     }),
 
     getUserById: builder.query<UserResponse, number>({
@@ -35,7 +32,7 @@ const userApi = baseSlice.injectEndpoints({
         url: `/user/${id}`,
         method: "GET",
       }),
-      providesTags: (result, error, id) => [{ type: "User" as const, id }],
+      providesTags: ["User"],
     }),
 
     getUserProgramStatus: builder.query<
@@ -46,9 +43,7 @@ const userApi = baseSlice.injectEndpoints({
         url: `/user/${userId}/program-status?program_id=${programId}`,
         method: "GET"
       }),
-      providesTags: (result, error, { userId, programId }) => [
-        { type: "User" as const, id: `STATUS_${userId}_${programId}` },
-      ],
+      providesTags: ["User"],
     }),
 
     updateUser: builder.mutation<
@@ -60,10 +55,7 @@ const userApi = baseSlice.injectEndpoints({
         method: "PATCH",
         body,
       }),
-      invalidatesTags: (result, error, { id }) => [
-        "User",
-        { type: "User" as const, id },
-      ],
+      invalidatesTags: ["User"],
     }),
 
     deleteUser: builder.mutation<UserResponse, number>({
@@ -71,10 +63,7 @@ const userApi = baseSlice.injectEndpoints({
         url: `/user/${id}`,
         method: "DELETE",
       }),
-      invalidatesTags: (result, error, id) => [
-        "User",
-        { type: "User" as const, id },
-      ],
+      invalidatesTags: ["User"],
     }),
   }),
 })

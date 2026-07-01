@@ -13,10 +13,7 @@ export const programsApi = baseSlice.injectEndpoints({
         url: `/programs/progress/${userId}`,
         method: "GET",
       }),
-      providesTags: (result) =>
-        result
-          ? ["Program", ...result.map(({ id }) => ({ type: "Program" as const, id }))]
-          : ["Program"],
+      providesTags: ["Program"],
     }),
     createProgram: builder.mutation<ProgramResponse, CreateProgramRequest>({
       query: (body) => ({
@@ -32,10 +29,7 @@ export const programsApi = baseSlice.injectEndpoints({
         method: "PATCH",
         body,
       }),
-      invalidatesTags: (result, error, { programId }) => [
-        "Program",
-        { type: "Program" as const, id: programId },
-      ],
+      invalidatesTags: ["Program"],
     }),
     deleteProgram: builder.mutation<void, number>({
       query: (programId) => ({

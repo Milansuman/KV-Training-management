@@ -16,16 +16,7 @@ export const assignmentSubmissionsApi = baseSlice.injectEndpoints({
         method: "POST",
         body,
       }),
-      invalidatesTags: (result) =>
-        result
-          ? [
-              "AssignmentSubmission",
-              {
-                type: "AssignmentSubmission" as const,
-                id: `ASSIGNMENT_${result.assignment_id}`,
-              },
-            ]
-          : ["AssignmentSubmission"],
+      invalidatesTags: ["AssignmentSubmission"],
     }),
 
     getSubmissionById: builder.query<
@@ -36,9 +27,7 @@ export const assignmentSubmissionsApi = baseSlice.injectEndpoints({
         url: `/assignment-submissions/${submissionId}`,
         method: "GET",
       }),
-      providesTags: (result, error, submissionId) => [
-        { type: "AssignmentSubmission" as const, id: submissionId },
-      ],
+      providesTags: ["AssignmentSubmission"],
     }),
 
     getSubmissionsByAssignmentId: builder.query<
@@ -49,24 +38,7 @@ export const assignmentSubmissionsApi = baseSlice.injectEndpoints({
         url: `/assignment-submissions/assignment/${assignmentId}`,
         method: "GET",
       }),
-      providesTags: (result, error, assignmentId) =>
-        result
-          ? [
-              {
-                type: "AssignmentSubmission" as const,
-                id: `ASSIGNMENT_${assignmentId}`,
-              },
-              ...result.map(({ id }) => ({
-                type: "AssignmentSubmission" as const,
-                id,
-              })),
-            ]
-          : [
-              {
-                type: "AssignmentSubmission" as const,
-                id: `ASSIGNMENT_${assignmentId}`,
-              },
-            ],
+      providesTags: ["AssignmentSubmission"],
     }),
 
     getSubmissionsByUserId: builder.query<
@@ -77,16 +49,7 @@ export const assignmentSubmissionsApi = baseSlice.injectEndpoints({
         url: `/assignment-submissions/user/${userId}`,
         method: "GET",
       }),
-      providesTags: (result, error, userId) =>
-        result
-          ? [
-              { type: "AssignmentSubmission" as const, id: `USER_${userId}` },
-              ...result.map(({ id }) => ({
-                type: "AssignmentSubmission" as const,
-                id,
-              })),
-            ]
-          : [{ type: "AssignmentSubmission" as const, id: `USER_${userId}` }],
+      providesTags: ["AssignmentSubmission"],
     }),
 
     patchSubmission: builder.mutation<
@@ -98,10 +61,7 @@ export const assignmentSubmissionsApi = baseSlice.injectEndpoints({
         method: "PATCH",
         body,
       }),
-      invalidatesTags: (result, error, { submissionId }) => [
-        "AssignmentSubmission",
-        { type: "AssignmentSubmission" as const, id: submissionId },
-      ],
+      invalidatesTags: ["AssignmentSubmission"],
     }),
 
     deleteSubmission: builder.mutation<
@@ -112,10 +72,7 @@ export const assignmentSubmissionsApi = baseSlice.injectEndpoints({
         url: `/assignment-submissions/${submissionId}`,
         method: "DELETE",
       }),
-      invalidatesTags: (result, error, submissionId) => [
-        "AssignmentSubmission",
-        { type: "AssignmentSubmission" as const, id: submissionId },
-      ],
+      invalidatesTags: ["AssignmentSubmission"],
     }),
   }),
 })

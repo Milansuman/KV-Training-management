@@ -16,16 +16,7 @@ export const programPermissionsApi = baseSlice.injectEndpoints({
         url: `/program-permissions/program/${programId}`,
         method: "GET",
       }),
-      providesTags: (result, error, programId) =>
-        result
-          ? [
-              { type: "ProgramPermission" as const, id: `PROGRAM_${programId}` },
-              ...result.map(({ permission_id }) => ({
-                type: "ProgramPermission" as const,
-                id: permission_id,
-              })),
-            ]
-          : [{ type: "ProgramPermission" as const, id: `PROGRAM_${programId}` }],
+      providesTags: ["ProgramPermission"],
     }),
 
     checkUserInProgram: builder.query<
