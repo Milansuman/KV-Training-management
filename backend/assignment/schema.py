@@ -3,6 +3,13 @@ from datetime import UTC, datetime
 from pydantic import BaseModel, ConfigDict, field_validator
 
 
+def _ensure_aware(dt: datetime) -> datetime:
+    """Attach UTC timezone to a naive datetime."""
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=UTC)
+    return dt
+
+
 class AssignmentCreateRequest(BaseModel):
     title: str
     description: str
@@ -12,6 +19,7 @@ class AssignmentCreateRequest(BaseModel):
     @field_validator("due_at")
     @classmethod
     def validate_due_at(cls, value: datetime) -> datetime:
+        value = _ensure_aware(value)
         if value <= datetime.now(tz=UTC):
             raise ValueError("due_at must be in the future")
         return value
@@ -27,6 +35,7 @@ class AssignmentUpdateRequest(BaseModel):
     def validate_due_at(cls, value: datetime | None) -> datetime | None:
         if value is None:
             return None
+        value = _ensure_aware(value)
         if value <= datetime.now(tz=UTC):
             raise ValueError("due_at must be in the future")
         return value

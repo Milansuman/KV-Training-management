@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from models.session import Session, session_topic
 from models.topic import Topic
 from sqlalchemy.orm import selectinload, with_loader_criteria
+from exceptions.exceptions import NotFoundException
 from feedback import service as feedback_service
 
 async def create_session(
@@ -90,10 +91,13 @@ async def delete_session(
 ) -> None:
 
     session.deleted_at = datetime.now(tz=UTC)
-    await feedback_service.delete_feedback_by_session_id(
-        db=db,
-        session_id=session.id
-    )
+    try:
+        await feedback_service.delete_feedback_by_session_id(
+            db=db,
+            session_id=session.id
+        )
+    except NotFoundException:
+        pass
 
     await db.commit()
 

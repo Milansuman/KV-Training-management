@@ -10,7 +10,7 @@ from models.session_permission import SessionPermission, SessionRoles
 ASSIGNMENT_PAYLOAD = {
     "title": "Build a REST API",
     "description": "Create a RESTful API using FastAPI",
-    "due_at": "2025-07-15T23:59:59",
+    "due_at": "2099-07-15T23:59:59",
 }
 
 
@@ -222,7 +222,7 @@ def test_create_assignment_non_admin_returns_401(client) -> None:
             "title": "Hack",
             "description": "Should fail",
             "session_id": 1,
-            "due_at": "2025-07-15T23:59:59",
+            "due_at": "2099-07-15T23:59:59",
         },
         cookies={"access_token": member_token},
     )
@@ -237,7 +237,7 @@ def test_create_assignment_unauthenticated_returns_401(client) -> None:
             "title": "No Auth",
             "description": "Should fail",
             "session_id": 1,
-            "due_at": "2025-07-15T23:59:59",
+            "due_at": "2099-07-15T23:59:59",
         },
     )
 

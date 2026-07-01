@@ -26,7 +26,9 @@ async def test_get_submissions_by_session_id_returns_list(db_session) -> None:
     feedback = await _seed_feedback(db_session, session_id=50)
     await _seed_submission(db_session, feedback_id=feedback.id, text="Service test.")
 
-    results = await service.get_submissions_by_session_id(db=db_session, session_id=50)
+    results = await service.get_submissions_by_session_id(
+        db=db_session, session_id=50, current_user_id=1, is_admin=True
+    )
 
     assert len(results) == 1
     assert results[0].text == "Service test."
@@ -34,7 +36,9 @@ async def test_get_submissions_by_session_id_returns_list(db_session) -> None:
 
 @pytest.mark.asyncio
 async def test_get_submissions_by_session_id_returns_empty_list(db_session) -> None:
-    results = await service.get_submissions_by_session_id(db=db_session, session_id=999)
+    results = await service.get_submissions_by_session_id(
+        db=db_session, session_id=999, current_user_id=1, is_admin=True
+    )
 
     assert results == []
 
@@ -47,7 +51,9 @@ async def test_get_submissions_by_session_id_only_returns_correct_session(db_ses
     await _seed_submission(db_session, feedback_id=feedback_target.id, text="Target session.")
     await _seed_submission(db_session, feedback_id=feedback_other.id, text="Other session.")
 
-    results = await service.get_submissions_by_session_id(db=db_session, session_id=60)
+    results = await service.get_submissions_by_session_id(
+        db=db_session, session_id=60, current_user_id=1, is_admin=True
+    )
 
     assert len(results) == 1
     assert results[0].text == "Target session."

@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from auth.dependencies import get_current_user
 from auth.schema import TokenPayload
-from exceptions.exceptions import ForbiddenException, UnauthorizedException
+from exceptions.exceptions import ForbiddenException, NotFoundException, UnauthorizedException
 from models.session_permission import SessionRoles
 from db.connection import get_db
 
@@ -133,7 +133,7 @@ async def update_material(
 ):
     session_id = await repository.get_session_id(db=db, material_id=material_id)
     if session_id is None:
-        raise ForbiddenException(
+        raise NotFoundException(
             "Material not found or has been deleted"
         )
     if not current_user.is_admin:
@@ -142,8 +142,7 @@ async def update_material(
             user_id=int(current_user.sub),
             session_id=session_id,
         )
-    
-    
+
     return await service.update_material(
         db=db,
         material_id=material_id,
@@ -163,7 +162,7 @@ async def delete_material(
 ):
     session_id = await repository.get_session_id(db=db, material_id=material_id)
     if session_id is None:
-        raise ForbiddenException(
+        raise NotFoundException(
             "Material not found or has been deleted"
         )
     if not current_user.is_admin:

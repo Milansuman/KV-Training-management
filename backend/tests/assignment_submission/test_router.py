@@ -50,9 +50,8 @@ def _create_assignment(client, token, session_id):
             "title": "Build a REST API",
             "description": "Create a RESTful API using FastAPI",
             "session_id": session_id,
-            "due_at": "2025-07-15T23:59:59",
+            "due_at": "2099-07-15T23:59:59",
         },
-        cookies={"access_token": token},
     )
     return response.json()["id"]
 
