@@ -31,7 +31,7 @@ export default function AppNavbar() {
       <div className="flex h-16 w-full  items-center justify-between px-6">
 
         {/* App Name */}
-        <p className="shrink-0 text-xl font-bold tracking-wide font-quicksand">Train3</p>
+        <p className="shrink-0 text-xl font-bold tracking-wide font-quicksand">Elevate.</p>
 
         {/* Desktop Profile */}
         <div className=" hidden items-center gap-3 md:flex">
