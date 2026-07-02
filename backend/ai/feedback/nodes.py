@@ -1,7 +1,7 @@
 import json
 
 from openai import OpenAI
-from sqlalchemy import select
+from sqlalchemy import and_, select, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import env
@@ -13,7 +13,7 @@ from .state import FeedbackSummaryState
 
 # Role → which sender roles should be included in the summary
 _VISIBLE_ROLES: dict[SessionRoles, list[SessionRoles]] = {
-    SessionRoles.TRAINER: [SessionRoles.MODERATOR],
+    SessionRoles.TRAINER: [SessionRoles.MODERATOR, SessionRoles.CANDIDATE],
     SessionRoles.CANDIDATE: [SessionRoles.TRAINER, SessionRoles.MODERATOR],
     SessionRoles.MODERATOR: [SessionRoles.TRAINER, SessionRoles.CANDIDATE, SessionRoles.MODERATOR],
 }
@@ -73,7 +73,15 @@ async def fetch_and_group_feedbacks(state: FeedbackSummaryState) -> FeedbackSumm
                 (SessionPermission.user_id == FeedbackSubmission.user_id)
                 & (SessionPermission.session_id == Feedback.session_id),
             )
-            .where(FeedbackSubmission.recipient_id == state["user_id"])
+            .where(
+                or_(
+                    FeedbackSubmission.recipient_id == state["user_id"],
+                    and_(
+                        FeedbackSubmission.recipient_id.is_(None),
+                        SessionPermission.role == SessionRoles.CANDIDATE
+                    )
+                )
+            )
             .where(Feedback.session_id == state["session_id"])
             .where(FeedbackSubmission.deleted_at.is_(None))
             .where(SessionPermission.role.in_(visible_sender_roles))
