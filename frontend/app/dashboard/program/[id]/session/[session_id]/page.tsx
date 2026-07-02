@@ -125,19 +125,26 @@ export default function SessionPage() {
     return me?.role ?? null;
   }, [sessionUsers, user]);
 
+  // Recipient visibility — inverse of VISIBLE_ROLES in feedback-section.tsx.
+  // If role X can see feedback from role Y, then Y can target feedback at X.
+  const RECIPIENT_VISIBILITY: Record<string, string[]> = {
+    TRAINER: ["MODERATOR"],
+    CANDIDATE: ["TRAINER", "MODERATOR"],
+    MODERATOR: ["TRAINER", "CANDIDATE", "MODERATOR"],
+  };
+
   // Available recipients based on role
   const availableRecipients = useMemo(() => {
     if (user?.is_admin || perms.isStaff) {
       return [...trainers, ...moderators, ...candidates];
     }
-    if (mySessionRole === "MODERATOR") {
-      return [...trainers, ...candidates];
-    }
-    if (mySessionRole === "TRAINER") {
-      return [...candidates];
-    }
-    return [];
-  }, [user, perms, mySessionRole, trainers, moderators, candidates]);
+    if (!mySessionRole) return [];
+    const allowedRoles = RECIPIENT_VISIBILITY[mySessionRole];
+    if (!allowedRoles) return [];
+    return sessionUsers.filter((u) =>
+      u.user_id !== user?.id && allowedRoles.includes(u.role),
+    );
+  }, [user, perms, mySessionRole, sessionUsers]);
 
   // Whether the user can select a recipient (candidates cannot)
   const canSelectRecipient = availableRecipients.length > 0;

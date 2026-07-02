@@ -55,6 +55,7 @@ class UpdateSessionPermissionRequest(BaseModel):
 
 class SessionWithRoleResponse(BaseModel):
     id: int
+    permission_id: int | None
     title: str
     description: str
     start_datetime: datetime

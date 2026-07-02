@@ -92,6 +92,9 @@ export default function FeedbackSection({ sessionId, user, sessionUsers = [] }: 
       // General feedback (no specific recipient) is visible to all
       if (fb.recipient_id === null) return true;
 
+      // Targeted feedback only visible to the intended recipient
+      if (fb.recipient_id !== user?.id) return false;
+
       // Users with no role see only general feedback
       if (!allowedSenderRoles) return false;
 

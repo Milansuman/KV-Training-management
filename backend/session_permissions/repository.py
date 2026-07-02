@@ -54,9 +54,9 @@ async def get_session_permissions_by_program_id(
     db: AsyncSession,
     user_id: int,
     program_id: int,
-) -> list[tuple[Session, SessionRoles | None]]:
+) -> list[tuple[Session, SessionRoles | None, int | None]]:
     rows = (await db.execute(
-        select(Session, SessionPermission.role)
+        select(Session, SessionPermission.role, SessionPermission.id)
         .outerjoin(
             SessionPermission,
             (SessionPermission.session_id == Session.id) &
@@ -65,7 +65,7 @@ async def get_session_permissions_by_program_id(
         .where(Session.program_id == program_id)
         .where(Session.deleted_at.is_(None))
     )).all()
-    return [(row[0], row[1]) for row in rows]
+    return [(row[0], row[1], row[2]) for row in rows]
 
 
 async def get_sessions_by_program_id(
@@ -95,6 +95,13 @@ async def soft_delete_session_permission(
     permission: SessionPermission,
 ) -> None:
     permission.deleted_at = datetime.now(UTC)
+    await db.commit()
+
+async def hard_delete_session_permission(
+    db: AsyncSession,
+    permission: SessionPermission,
+) -> None:
+    await db.delete(permission)
     await db.commit()
 
 

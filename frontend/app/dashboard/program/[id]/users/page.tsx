@@ -28,6 +28,7 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
@@ -42,6 +43,7 @@ import {
 import {
   useGetSessionsWithRoleQuery,
   useAddSessionPermissionMutation,
+  useDeleteSessionPermissionMutation,
   useUpdateSessionPermissionMutation,
 } from "@/lib/api/session-permissions/session-permissions.api";
 import type { SessionRole } from "@/lib/api/session-permissions/session-permissions.type";
@@ -160,15 +162,28 @@ export default function UsersPage() {
     );
 
   const [addSessionPerm] = useAddSessionPermissionMutation();
+  const [deleteSessionPerm] = useDeleteSessionPermissionMutation();
   const [updateSessionPerm] = useUpdateSessionPermissionMutation();
+
+  // ── Sessions Search ────────────────────────────────────────────
+  const [sessionSearch, setSessionSearch] = useState("");
+
+  const filteredSessions = sessionsWithRole.filter((s) => {
+    if (!sessionSearch.trim()) return true;
+    const q = sessionSearch.toLowerCase();
+    return (
+      s.title.toLowerCase().includes(q) ||
+      (s.description && s.description.toLowerCase().includes(q))
+    );
+  });
 
   // ── Sessions Pagination ─────────────────────────────────────────
   const [sessionPage, setSessionPage] = useState(1);
   const sessionPageSize = 8;
 
-  const sessionTotalPages = Math.max(1, Math.ceil(sessionsWithRole.length / sessionPageSize));
+  const sessionTotalPages = Math.max(1, Math.ceil(filteredSessions.length / sessionPageSize));
   const safeSessionPage = Math.min(sessionPage, sessionTotalPages);
-  const paginatedSessions = sessionsWithRole.slice(
+  const paginatedSessions = filteredSessions.slice(
     (safeSessionPage - 1) * sessionPageSize,
     safeSessionPage * sessionPageSize,
   );
@@ -195,6 +210,7 @@ export default function UsersPage() {
     setSelectedUser(member);
     setSelectedSessionIds(new Set());
     setSessionPage(1);
+    setSessionSearch("");
     setDialogOpen(true);
   }
 
@@ -223,7 +239,7 @@ export default function UsersPage() {
     try {
       if (existing?.role) {
         await updateSessionPerm({
-          permissionId: sessionId,
+          permissionId: existing.permission_id,
           body: { role: newRoleValue },
         }).unwrap();
       } else {
@@ -253,6 +269,14 @@ export default function UsersPage() {
           }).unwrap();
         }
       }
+
+      // Remove permissions for sessions that were explicitly unchecked
+      for (const session of sessionsWithRole) {
+        if (session.role && !selectedSessionIds.has(session.id)) {
+          await deleteSessionPerm(session.permission_id).unwrap();
+        }
+      }
+
       toast.success("Session assignments saved.");
       setDialogOpen(false);
     } catch (err) {
@@ -601,26 +625,40 @@ export default function UsersPage() {
             </div>
           ) : (
             <>
-              <div className="mt-6 overflow-y-auto rounded-xl border">
+              {/* Search bar */}
+              <div className="mt-4">
+                <Input
+                  placeholder="Search sessions by title or description..."
+                  value={sessionSearch}
+                  onChange={(e) => {
+                    setSessionSearch(e.target.value);
+                    setSessionPage(1);
+                  }}
+                  className="w-full"
+                />
+              </div>
+              <div className="mt-4 overflow-y-auto rounded-xl border">
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead className="w-16">
                         <Checkbox
                           checked={
-                            sessionsWithRole.length > 0 &&
-                            sessionsWithRole.every((s) => s.role)
+                            filteredSessions.length > 0 &&
+                            filteredSessions.every((s) =>
+                              selectedSessionIds.has(s.id),
+                            )
                           }
                           onCheckedChange={() => {
-                            // Select/deselect all
-                            const allSelected = sessionsWithRole.every((s) =>
+                            // Select/deselect all visible sessions
+                            const allSelected = filteredSessions.every((s) =>
                               selectedSessionIds.has(s.id),
                             );
                             if (allSelected) {
                               setSelectedSessionIds(new Set());
                             } else {
                               setSelectedSessionIds(
-                                new Set(sessionsWithRole.map((s) => s.id)),
+                                new Set(filteredSessions.map((s) => s.id)),
                               );
                             }
                           }}
@@ -632,13 +670,15 @@ export default function UsersPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {sessionsWithRole.length === 0 ? (
+                    {filteredSessions.length === 0 ? (
                       <TableRow>
                         <TableCell
                           colSpan={4}
                           className="h-20 text-center text-muted-foreground"
                         >
-                          No sessions available in this program.
+                          {sessionSearch.trim()
+                            ? "No sessions match your search."
+                            : "No sessions available in this program."}
                         </TableCell>
                       </TableRow>
                     ) : (
@@ -690,8 +730,8 @@ export default function UsersPage() {
               <div className="flex items-center justify-between px-2 py-3">
                 <p className="text-sm text-muted-foreground">
                   Showing {(safeSessionPage - 1) * sessionPageSize + 1}
-                  &ndash;{Math.min(safeSessionPage * sessionPageSize, sessionsWithRole.length)}{" "}
-                  of {sessionsWithRole.length} sessions
+                  &ndash;{Math.min(safeSessionPage * sessionPageSize, filteredSessions.length)}{" "}
+                  of {filteredSessions.length} sessions
                 </p>
                 <div className="flex items-center gap-2">
                   <Button

@@ -86,7 +86,7 @@ async def delete_session_permission(
         raise NotFoundException("Session permission not found") from exc
 
     try:
-        await repository.soft_delete_session_permission(db=db, permission=permission)
+        await repository.hard_delete_session_permission(db=db, permission=permission)
     except SQLAlchemyError as exc:
         await db.rollback()
         raise BadRequestException("Unable to delete session permission") from exc
@@ -156,8 +156,9 @@ async def get_session_permissions_by_program(
             created_at=session.created_at,
             updated_at=session.updated_at,
             role=role,
+            permission_id=permission_id
         )
-        for session, role in rows
+        for session, role, permission_id in rows
     ]
 
 

@@ -30,6 +30,7 @@ export interface SessionResponse {
 
 export interface SessionWithRoleResponse extends SessionResponse {
   role: SessionRole | null
+  permission_id: number | null
 }
 
 export interface SessionUserResponse {
