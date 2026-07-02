@@ -52,6 +52,8 @@ import {
 import {
   useGetSubmissionsByAssignmentIdQuery,
   useCreateSubmissionMutation,
+  usePatchSubmissionMutation,
+  useDeleteSubmissionMutation,
 } from "@/lib/api/assignment-submissions/assignment-submissions.api";
 import type { AssignmentResponse } from "@/lib/api/assignments/assignments.type";
 import type { UserResponse } from "@/lib/api/user/user.type";
@@ -119,18 +121,18 @@ export default function AssignmentsSection({
 
   // Update dialog
   const [isUpdateOpen, setIsUpdateOpen] = useState(false);
-  const [editingAssignmentId, setEditingAssignmentId] = useState<
-    number | null
-  >(null);
+  const [editingAssignmentId, setEditingAssignmentId] = useState<number | null>(
+    null,
+  );
   const [updateTitle, setUpdateTitle] = useState("");
   const [updateDescription, setUpdateDescription] = useState("");
   const [updateDueAt, setUpdateDueAt] = useState("");
 
   // Submissions dialog (view)
   const [isSubmissionsOpen, setIsSubmissionsOpen] = useState(false);
-  const [viewingAssignmentId, setViewingAssignmentId] = useState<
-    number | null
-  >(null);
+  const [viewingAssignmentId, setViewingAssignmentId] = useState<number | null>(
+    null,
+  );
   const { data: viewingSubmissions = [] } =
     useGetSubmissionsByAssignmentIdQuery(viewingAssignmentId ?? 0, {
       skip: !viewingAssignmentId,
@@ -144,6 +146,16 @@ export default function AssignmentsSection({
   const [newSubmissionUrl, setNewSubmissionUrl] = useState("");
   const [createSubmission, { isLoading: isCreatingSubmission }] =
     useCreateSubmissionMutation();
+
+  // Update submission dialog
+  const [isUpdateSubmissionOpen, setIsUpdateSubmissionOpen] = useState(false);
+  const [editingSubmissionId, setEditingSubmissionId] = useState<number | null>(
+    null,
+  );
+  const [updateSubmissionUrl, setUpdateSubmissionUrl] = useState("");
+  const [patchSubmission, { isLoading: isPatchingSubmission }] =
+    usePatchSubmissionMutation();
+  const [deleteSubmission] = useDeleteSubmissionMutation();
 
   function resetCreateForm() {
     setNewTitle("");
@@ -231,6 +243,11 @@ export default function AssignmentsSection({
     setNewSubmissionUrl("");
   }
 
+  function resetUpdateSubmissionForm() {
+    setEditingSubmissionId(null);
+    setUpdateSubmissionUrl("");
+  }
+
   function handleOpenCreateSubmission(assignmentId: number) {
     setSubmitAssignmentId(assignmentId);
     setIsCreateSubmissionOpen(true);
@@ -249,6 +266,40 @@ export default function AssignmentsSection({
       toast.success("Submission created successfully!");
       setIsCreateSubmissionOpen(false);
       resetCreateSubmissionForm();
+    } catch (err) {
+      toast.error(getErrorDetail(err));
+    }
+  }
+
+  function handleOpenUpdateSubmission(submissionId: number, url: string) {
+    setEditingSubmissionId(submissionId);
+    setUpdateSubmissionUrl(url);
+    setIsUpdateSubmissionOpen(true);
+  }
+
+  async function handleUpdateSubmission(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editingSubmissionId || !updateSubmissionUrl) return;
+
+    try {
+      await patchSubmission({
+        submissionId: editingSubmissionId,
+        body: {
+          url: updateSubmissionUrl,
+        },
+      }).unwrap();
+      toast.success("Submission updated successfully!");
+      setIsUpdateSubmissionOpen(false);
+      resetUpdateSubmissionForm();
+    } catch (err) {
+      toast.error(getErrorDetail(err));
+    }
+  }
+
+  async function handleDeleteSubmission(submissionId: number) {
+    try {
+      await deleteSubmission(submissionId).unwrap();
+      toast.success("Submission deleted successfully!");
     } catch (err) {
       toast.error(getErrorDetail(err));
     }
@@ -297,8 +348,7 @@ export default function AssignmentsSection({
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="new-description">
-                    Description{" "}
-                    <span className="text-destructive">*</span>
+                    Description <span className="text-destructive">*</span>
                   </Label>
                   <Textarea
                     id="new-description"
@@ -310,8 +360,7 @@ export default function AssignmentsSection({
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="new-due">
-                    Due Date & Time{" "}
-                    <span className="text-destructive">*</span>
+                    Due Date & Time <span className="text-destructive">*</span>
                   </Label>
                   <Input
                     id="new-due"
@@ -395,9 +444,7 @@ export default function AssignmentsSection({
                     <Button
                       size="sm"
                       className="w-full"
-                      onClick={() =>
-                        handleOpenCreateSubmission(assignment.id)
-                      }
+                      onClick={() => handleOpenCreateSubmission(assignment.id)}
                     >
                       <Plus data-icon="inline-start" />
                       Submit
@@ -407,9 +454,7 @@ export default function AssignmentsSection({
                     size="sm"
                     variant="secondary"
                     className="w-full"
-                    onClick={() =>
-                      handleViewSubmissions(assignment.id)
-                    }
+                    onClick={() => handleViewSubmissions(assignment.id)}
                   >
                     <Eye data-icon="inline-start" />
                     View Submissions
@@ -419,10 +464,7 @@ export default function AssignmentsSection({
 
               {/* ── Update Assignment Dialog ──────────────── */}
               <Dialog
-                open={
-                  isUpdateOpen &&
-                  editingAssignmentId === assignment.id
-                }
+                open={isUpdateOpen && editingAssignmentId === assignment.id}
                 onOpenChange={(open) => {
                   setIsUpdateOpen(open);
                   if (!open) resetUpdateForm();
@@ -439,8 +481,7 @@ export default function AssignmentsSection({
                     <div className="grid gap-5 py-4">
                       <div className="grid gap-2">
                         <Label htmlFor="update-title">
-                          Title{" "}
-                          <span className="text-destructive">*</span>
+                          Title <span className="text-destructive">*</span>
                         </Label>
                         <Input
                           id="update-title"
@@ -457,9 +498,7 @@ export default function AssignmentsSection({
                         <Textarea
                           id="update-description"
                           value={updateDescription}
-                          onChange={(e) =>
-                            setUpdateDescription(e.target.value)
-                          }
+                          onChange={(e) => setUpdateDescription(e.target.value)}
                           required
                         />
                       </div>
@@ -502,8 +541,7 @@ export default function AssignmentsSection({
               {/* ── Create Submission Dialog ──────────────── */}
               <Dialog
                 open={
-                  isCreateSubmissionOpen &&
-                  submitAssignmentId === assignment.id
+                  isCreateSubmissionOpen && submitAssignmentId === assignment.id
                 }
                 onOpenChange={(open) => {
                   setIsCreateSubmissionOpen(open);
@@ -529,9 +567,7 @@ export default function AssignmentsSection({
                           type="url"
                           placeholder="https://github.com/user/repo"
                           value={newSubmissionUrl}
-                          onChange={(e) =>
-                            setNewSubmissionUrl(e.target.value)
-                          }
+                          onChange={(e) => setNewSubmissionUrl(e.target.value)}
                           required
                         />
                       </div>
@@ -547,10 +583,7 @@ export default function AssignmentsSection({
                       >
                         Cancel
                       </Button>
-                      <Button
-                        type="submit"
-                        disabled={isCreatingSubmission}
-                      >
+                      <Button type="submit" disabled={isCreatingSubmission}>
                         {isCreatingSubmission && (
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         )}
@@ -566,10 +599,7 @@ export default function AssignmentsSection({
       )}
 
       {/* ── View Submissions Dialog (global, not per-card) ── */}
-      <Dialog
-        open={isSubmissionsOpen}
-        onOpenChange={setIsSubmissionsOpen}
-      >
+      <Dialog open={isSubmissionsOpen} onOpenChange={setIsSubmissionsOpen}>
         <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>Submissions</DialogTitle>
@@ -588,6 +618,9 @@ export default function AssignmentsSection({
                   <TableHead>User</TableHead>
                   <TableHead>Submission URL</TableHead>
                   <TableHead>Submitted At</TableHead>
+                  <TableHead className="w-[1%] whitespace-nowrap">
+                    Actions
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -618,12 +651,87 @@ export default function AssignmentsSection({
                         {formatDateTimeLong(sub.created_at)}
                       </div>
                     </TableCell>
+                    <TableCell>
+                      {user && sub.user_id === user.id ? (
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleOpenUpdateSubmission(sub.id, sub.url)
+                            }
+                            className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
+                          >
+                            <Pencil className="size-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteSubmission(sub.id)}
+                            className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                          >
+                            <Trash2 className="size-4" />
+                          </button>
+                        </div>
+                      ) : null}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
           )}
           <DialogFooter showCloseButton />
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Update Submission Dialog ──────────────── */}
+      <Dialog
+        open={isUpdateSubmissionOpen}
+        onOpenChange={(open) => {
+          setIsUpdateSubmissionOpen(open);
+          if (!open) resetUpdateSubmissionForm();
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <form onSubmit={handleUpdateSubmission}>
+            <DialogHeader>
+              <DialogTitle>Edit Submission</DialogTitle>
+              <DialogDescription>
+                Update the URL for your submission.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="update-sub-url">
+                  Submission URL <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="update-sub-url"
+                  type="url"
+                  placeholder="https://github.com/user/repo"
+                  value={updateSubmissionUrl}
+                  onChange={(e) => setUpdateSubmissionUrl(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setIsUpdateSubmissionOpen(false);
+                  resetUpdateSubmissionForm();
+                }}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isPatchingSubmission}>
+                {isPatchingSubmission && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
+                Update Submission
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </div>
