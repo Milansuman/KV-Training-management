@@ -181,6 +181,8 @@ export default function SessionPage() {
 
   const canSubmitFeedback =
     !!session && new Date(session.end_datetime) <= new Date();
+  const canJoinSession =
+    !!session && new Date(session.end_datetime) > new Date();
 
   // ── Loading / error states ────────────────────────────────────────
 
@@ -342,7 +344,11 @@ export default function SessionPage() {
         </div>
         <div className="flex flex-col gap-2 lg:ml-auto">
           <div className="flex flex-col gap-2 lg:flex-row">
-            {user && (user?.is_admin || perms.isStaff) && mySessionRole !== "TRAINER" && mySessionRole !== "MODERATOR" ? (
+            {user &&
+            canJoinSession &&
+            (user?.is_admin || perms.isStaff) &&
+            mySessionRole !== "TRAINER" &&
+            mySessionRole !== "MODERATOR" ? (
               <Popover>
                 <PopoverTrigger render={<Button>Join Session</Button>} />
                 <PopoverContent className="w-44" align="end">
