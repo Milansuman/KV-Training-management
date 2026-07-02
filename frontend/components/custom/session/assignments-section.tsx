@@ -618,9 +618,11 @@ export default function AssignmentsSection({
                   <TableHead>User</TableHead>
                   <TableHead>Submission URL</TableHead>
                   <TableHead>Submitted At</TableHead>
-                  <TableHead className="w-[1%] whitespace-nowrap">
-                    Actions
-                  </TableHead>
+                  {!canManage && sessionRole !== "MODERATOR" && (
+                    <TableHead className="w-[1%] whitespace-nowrap">
+                      Actions
+                    </TableHead>
+                  )}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -651,28 +653,32 @@ export default function AssignmentsSection({
                         {formatDateTimeLong(sub.created_at)}
                       </div>
                     </TableCell>
-                    <TableCell>
-                      {user && sub.user_id === user.id ? (
-                        <div className="flex items-center gap-1">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              handleOpenUpdateSubmission(sub.id, sub.url)
-                            }
-                            className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
-                          >
-                            <Pencil className="size-4" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteSubmission(sub.id)}
-                            className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
-                          >
-                            <Trash2 className="size-4" />
-                          </button>
-                        </div>
-                      ) : null}
-                    </TableCell>
+                    {
+                      !canManage && sessionRole !== "MODERATOR" && (
+                        <TableCell>
+                          {user && sub.user_id === user.id ? (
+                            <div className="flex items-center gap-1">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handleOpenUpdateSubmission(sub.id, sub.url)
+                                }
+                                className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
+                              >
+                                <Pencil className="size-4" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteSubmission(sub.id)}
+                                className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                              >
+                                <Trash2 className="size-4" />
+                              </button>
+                            </div>
+                          ) : null}
+                        </TableCell>
+                      )
+                    }
                   </TableRow>
                 ))}
               </TableBody>
