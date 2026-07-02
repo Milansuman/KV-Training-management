@@ -21,6 +21,7 @@ interface VortexProps {
 export const Vortex = (props: VortexProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef(null);
+  //@ts-expect-error: external component
   const animationFrameId = useRef<number>();
   const particleCount = props.particleCount || 700;
   const particlePropCount = 9;
@@ -79,6 +80,7 @@ export const Vortex = (props: VortexProps) => {
       initParticle(i);
     }
   };
+
 
   const initParticle = (i: number) => {
     const canvas = canvasRef.current;

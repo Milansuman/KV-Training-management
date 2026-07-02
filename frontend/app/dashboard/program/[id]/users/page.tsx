@@ -195,15 +195,17 @@ export default function UsersPage() {
 
   // When sessionsWithRole loads, pre-populate selections for sessions the user already has a role in
   useEffect(() => {
-    if (dialogOpen) {
-      setSelectedSessionIds(
-        new Set(
-          sessionsWithRole
-            .filter((s) => s.role)
-            .map((s) => s.id),
-        ),
-      );
-    }
+    (async () => {
+      if (dialogOpen) {
+        setSelectedSessionIds(
+          new Set(
+            sessionsWithRole
+              .filter((s) => s.role)
+              .map((s) => s.id),
+          ),
+        );
+      }
+    })();
   }, [dialogOpen, sessionsWithRole]);
 
   function handleOpenManageSessions(member: ListProgramPermissionItem) {
@@ -239,7 +241,7 @@ export default function UsersPage() {
     try {
       if (existing?.role) {
         await updateSessionPerm({
-          permissionId: existing.permission_id,
+          permissionId: existing.permission_id!,
           body: { role: newRoleValue },
         }).unwrap();
       } else {
@@ -273,7 +275,7 @@ export default function UsersPage() {
       // Remove permissions for sessions that were explicitly unchecked
       for (const session of sessionsWithRole) {
         if (session.role && !selectedSessionIds.has(session.id)) {
-          await deleteSessionPerm(session.permission_id).unwrap();
+          await deleteSessionPerm(session.permission_id!).unwrap();
         }
       }
 
