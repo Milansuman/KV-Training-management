@@ -334,7 +334,7 @@ export default function SessionPage() {
         </div>
         <div className="flex flex-col gap-2 lg:ml-auto">
           <div className="flex flex-col gap-2 lg:flex-row">
-            {user?.is_admin || perms.isStaff ? (
+            {user && (user?.is_admin || perms.isStaff) && mySessionRole !== "TRAINER" && mySessionRole !== "MODERATOR" ? (
               <Popover>
                 <PopoverTrigger render={<Button>Join Session</Button>} />
                 <PopoverContent className="w-44" align="end">
