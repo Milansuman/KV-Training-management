@@ -198,7 +198,7 @@ export default function FeedbackSection({ sessionId, user, sessionUsers = [] }: 
           </p>
         </div>
       ) : (
-        <div className="flex flex-col gap-4 lg:flex-row lg:max-w-[600px]">
+        <div className="flex flex-col gap-4 lg:flex-row lg:flex-wrap justify-center">
           {visibleFeedback.map((fb) => {
             const senderRole = userRoleMap.get(fb.user_id);
             return (
