@@ -175,9 +175,9 @@ function SessionRail({
       </div>
 
       {/* chips */}
-      <div className="mt-2 flex flex-wrap gap-1">
+      <div className="mt-2 flex flex-nowrap gap-1 overflow-x-auto h-5 scrollbar-none">
         {sessions.map((s, i) => (
-          <span key={i} className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${SESSION_CHIP[s.status]}`}>
+          <span key={i} className={`rounded-lg px-2 py-0.5 text-[10px] font-medium ${SESSION_CHIP[s.status]}`}>
             {s.session_name}
           </span>
         ))}
@@ -360,7 +360,7 @@ export default function Dashboard() {
               value={program_count}
               className="text-8xl font-bold text-primary font-quicksand leading-none"
             />
-    
+
           </div>
         </AnimatedContent>
 
@@ -448,7 +448,7 @@ export default function Dashboard() {
               </div>
             </div>
 
-            <div className="flex-1 overflow-hidden px-5">
+            <div className="flex-1 overflow-hidden px-5 mt-2">
               <div className="space-y-5 pb-2 ">
                 {visibleSessions.map(([progName, sessions]) => (
                   <SessionRail key={progName} programTitle={progName} sessions={sessions} />
