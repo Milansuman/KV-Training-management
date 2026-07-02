@@ -127,6 +127,14 @@ async def google_handshake(
     return tokens
 
 
+@router.post("/logout")
+async def logout(response: Response):
+    """Clear the auth cookies, effectively logging the user out."""
+    response.delete_cookie(key=ACCESS_COOKIE_NAME, path=COOKIE_PATH)
+    response.delete_cookie(key=REFRESH_COOKIE_NAME, path=COOKIE_PATH)
+    return {"detail": "Logged out"}
+
+
 @router.post("/refresh", response_model=TokenResponse)
 async def refresh(
     response: Response,
