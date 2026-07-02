@@ -84,6 +84,17 @@ export default function UsersPage() {
     };
   });
 
+  // ── Pagination ──────────────────────────────────────────────────
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
+
+  const totalPages = Math.max(1, Math.ceil(membersWithDetails.length / pageSize));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const paginatedMembers = membersWithDetails.slice(
+    (safeCurrentPage - 1) * pageSize,
+    safeCurrentPage * pageSize,
+  );
+
   // ── Add User dialog ─────────────────────────────────────────────
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [selectedUserIds, setSelectedUserIds] = useState<Set<number>>(new Set());
@@ -151,6 +162,17 @@ export default function UsersPage() {
   const [addSessionPerm] = useAddSessionPermissionMutation();
   const [updateSessionPerm] = useUpdateSessionPermissionMutation();
 
+  // ── Sessions Pagination ─────────────────────────────────────────
+  const [sessionPage, setSessionPage] = useState(1);
+  const sessionPageSize = 8;
+
+  const sessionTotalPages = Math.max(1, Math.ceil(sessionsWithRole.length / sessionPageSize));
+  const safeSessionPage = Math.min(sessionPage, sessionTotalPages);
+  const paginatedSessions = sessionsWithRole.slice(
+    (safeSessionPage - 1) * sessionPageSize,
+    safeSessionPage * sessionPageSize,
+  );
+
   // Track which sessions are selected for assignment
   const [selectedSessionIds, setSelectedSessionIds] = useState<Set<number>>(
     new Set(),
@@ -172,6 +194,7 @@ export default function UsersPage() {
   function handleOpenManageSessions(member: ListProgramPermissionItem) {
     setSelectedUser(member);
     setSelectedSessionIds(new Set());
+    setSessionPage(1);
     setDialogOpen(true);
   }
 
@@ -292,7 +315,7 @@ export default function UsersPage() {
                 </TableRow>
               </TableHeader>
 
-              <TableBody>
+              <TableBody className="max-h-96">
                 {membersWithDetails.length === 0 ? (
                   <TableRow>
                     <TableCell
@@ -303,7 +326,7 @@ export default function UsersPage() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  membersWithDetails.map((member) => (
+                  paginatedMembers.map((member) => (
                     <TableRow
                       key={member.permission_id}
                       className="h-20 text-center font-quicksand hover:bg-muted/30"
@@ -374,6 +397,48 @@ export default function UsersPage() {
                 )}
               </TableBody>
             </Table>
+          </div>
+
+          {/* ── Pagination ── */}
+          <div className="flex items-center justify-between px-4 py-4">
+            <p className="text-sm text-muted-foreground">
+              Showing {(safeCurrentPage - 1) * pageSize + 1}
+              &ndash;{Math.min(safeCurrentPage * pageSize, membersWithDetails.length)}{" "}
+              of {membersWithDetails.length} users
+            </p>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={safeCurrentPage <= 1}
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              >
+                Previous
+              </Button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                (page) => (
+                  <Button
+                    key={page}
+                    variant={safeCurrentPage === page ? "default" : "outline"}
+                    size="sm"
+                    className="min-w-9"
+                    onClick={() => setCurrentPage(page)}
+                  >
+                    {page}
+                  </Button>
+                ),
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={safeCurrentPage >= totalPages}
+                onClick={() =>
+                  setCurrentPage((p) => Math.min(totalPages, p + 1))
+                }
+              >
+                Next
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -535,90 +600,134 @@ export default function UsersPage() {
               <Loader2 className="h-6 w-6 animate-spin text-primary" />
             </div>
           ) : (
-            <div className="mt-6 overflow-y-auto rounded-xl border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-16">
-                      <Checkbox
-                        checked={
-                          sessionsWithRole.length > 0 &&
-                          sessionsWithRole.every((s) => s.role)
-                        }
-                        onCheckedChange={() => {
-                          // Select/deselect all
-                          const allSelected = sessionsWithRole.every((s) =>
-                            selectedSessionIds.has(s.id),
-                          );
-                          if (allSelected) {
-                            setSelectedSessionIds(new Set());
-                          } else {
-                            setSelectedSessionIds(
-                              new Set(sessionsWithRole.map((s) => s.id)),
-                            );
-                          }
-                        }}
-                      />
-                    </TableHead>
-                    <TableHead>Session Name</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead className="w-56">Role</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {sessionsWithRole.length === 0 ? (
+            <>
+              <div className="mt-6 overflow-y-auto rounded-xl border">
+                <Table>
+                  <TableHeader>
                     <TableRow>
-                      <TableCell
-                        colSpan={4}
-                        className="h-20 text-center text-muted-foreground"
-                      >
-                        No sessions available in this program.
-                      </TableCell>
+                      <TableHead className="w-16">
+                        <Checkbox
+                          checked={
+                            sessionsWithRole.length > 0 &&
+                            sessionsWithRole.every((s) => s.role)
+                          }
+                          onCheckedChange={() => {
+                            // Select/deselect all
+                            const allSelected = sessionsWithRole.every((s) =>
+                              selectedSessionIds.has(s.id),
+                            );
+                            if (allSelected) {
+                              setSelectedSessionIds(new Set());
+                            } else {
+                              setSelectedSessionIds(
+                                new Set(sessionsWithRole.map((s) => s.id)),
+                              );
+                            }
+                          }}
+                        />
+                      </TableHead>
+                      <TableHead>Session Name</TableHead>
+                      <TableHead>Description</TableHead>
+                      <TableHead className="w-56">Role</TableHead>
                     </TableRow>
-                  ) : (
-                    sessionsWithRole.map((session) => (
-                      <TableRow key={session.id}>
-                        <TableCell>
-                          <Checkbox
-                            checked={selectedSessionIds.has(session.id)}
-                            onCheckedChange={() =>
-                              toggleSessionSelection(session.id)
-                            }
-                          />
-                        </TableCell>
-                        <TableCell className="font-medium">
-                          {session.title}
-                        </TableCell>
-                        <TableCell>{session.description}</TableCell>
-                        <TableCell>
-                          <Select
-                            defaultValue={session.role ?? undefined}
-                            onValueChange={(v) =>
-                              handleSessionRoleChange(session.id, v as SessionRole)
-                            }
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="No role" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="TRAINER">
-                                Trainer
-                              </SelectItem>
-                              <SelectItem value="MODERATOR">
-                                Moderator
-                              </SelectItem>
-                              <SelectItem value="CANDIDATE">
-                                Candidate
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
+                  </TableHeader>
+                  <TableBody>
+                    {sessionsWithRole.length === 0 ? (
+                      <TableRow>
+                        <TableCell
+                          colSpan={4}
+                          className="h-20 text-center text-muted-foreground"
+                        >
+                          No sessions available in this program.
                         </TableCell>
                       </TableRow>
-                    ))
+                    ) : (
+                      paginatedSessions.map((session) => (
+                        <TableRow key={session.id}>
+                          <TableCell>
+                            <Checkbox
+                              checked={selectedSessionIds.has(session.id)}
+                              onCheckedChange={() =>
+                                toggleSessionSelection(session.id)
+                              }
+                            />
+                          </TableCell>
+                          <TableCell className="font-medium">
+                            {session.title}
+                          </TableCell>
+                          <TableCell>{session.description}</TableCell>
+                          <TableCell>
+                            <Select
+                              defaultValue={session.role ?? undefined}
+                              onValueChange={(v) =>
+                                handleSessionRoleChange(session.id, v as SessionRole)
+                              }
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="No role" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="TRAINER">
+                                  Trainer
+                                </SelectItem>
+                                <SelectItem value="MODERATOR">
+                                  Moderator
+                                </SelectItem>
+                                <SelectItem value="CANDIDATE">
+                                  Candidate
+                                </SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* ── Sessions Pagination ── */}
+              <div className="flex items-center justify-between px-2 py-3">
+                <p className="text-sm text-muted-foreground">
+                  Showing {(safeSessionPage - 1) * sessionPageSize + 1}
+                  &ndash;{Math.min(safeSessionPage * sessionPageSize, sessionsWithRole.length)}{" "}
+                  of {sessionsWithRole.length} sessions
+                </p>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={safeSessionPage <= 1}
+                    onClick={() => setSessionPage((p) => Math.max(1, p - 1))}
+                  >
+                    Previous
+                  </Button>
+                  {Array.from({ length: sessionTotalPages }, (_, i) => i + 1).map(
+                    (page) => (
+                      <Button
+                        key={page}
+                        variant={safeSessionPage === page ? "default" : "outline"}
+                        size="sm"
+                        className="min-w-9"
+                        onClick={() => setSessionPage(page)}
+                      >
+                        {page}
+                      </Button>
+                    ),
                   )}
-                </TableBody>
-              </Table>
-            </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={safeSessionPage >= sessionTotalPages}
+                    onClick={() =>
+                      setSessionPage((p) => Math.min(sessionTotalPages, p + 1))
+                    }
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            </>
           )}
 
           <DialogFooter className="mt-6">
