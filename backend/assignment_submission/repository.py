@@ -126,9 +126,7 @@ async def delete_submission(
         db
     )
 
-    submission.deleted_at = datetime.now(tz=UTC)
+    # submission.deleted_at = datetime.now(tz=UTC)
 
+    await db.delete(submission)
     await db.commit()
-    await db.refresh(submission)
-
-    return submission

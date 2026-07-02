@@ -58,7 +58,7 @@ async def get_submissions_by_assignment_id(
     assignment = await assignment_repository.get_assignment_by_id(
         assignment_id=assignment_id,
         db=db
-    )  
+    )
     if assignment is None:
         raise NotFoundException(detail="Assignment not found.")
     return await repository.get_submissions_by_assignment_id(
@@ -101,7 +101,7 @@ async def delete_submission(
     submission_id: int,
     db: AsyncSession
 ):
-    return await repository.delete_submission(
+    await repository.delete_submission(
         submission_id=submission_id,
         db=db
     )
