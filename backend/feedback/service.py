@@ -53,6 +53,10 @@ async def get_submissions_by_session_id(
         session_id=session_id
     )
 
+    # Admins see all feedback
+    if is_admin:
+        return submissions
+
     # Fetch all session permissions to determine roles
     result = await db.scalars(
         select(SessionPermission)
@@ -64,32 +68,29 @@ async def get_submissions_by_session_id(
     user_role_map = {p.user_id: p.role for p in session_permissions}
     current_role = user_role_map.get(current_user_id)
 
-    # Admins and moderators see all feedback
-    if is_admin or current_role == SessionRoles.MODERATOR:
-        return submissions
-
-    candidate_ids = {
-        p.user_id for p in session_permissions
-        if p.role == SessionRoles.CANDIDATE
+    # Same visibility rules as ai/feedback/nodes.py
+    _VISIBLE_ROLES: dict[SessionRoles, list[SessionRoles]] = {
+        SessionRoles.TRAINER: [SessionRoles.MODERATOR],
+        SessionRoles.CANDIDATE: [SessionRoles.TRAINER, SessionRoles.MODERATOR],
+        SessionRoles.MODERATOR: [SessionRoles.TRAINER, SessionRoles.CANDIDATE, SessionRoles.MODERATOR],
     }
 
-    # Trainers: general feedback + submissions involving candidates + their own/received
-    if current_role == SessionRoles.TRAINER:
-        return [
-            s for s in submissions
-            if s.recipient_id is None
-            or s.user_id == current_user_id
-            or s.recipient_id == current_user_id
-            or s.user_id in candidate_ids
-            or (s.recipient_id is not None and s.recipient_id in candidate_ids)
-        ]
+    # Users with no role see only general feedback (not addressed to anyone specific)
+    if current_role is None:
+        return [s for s in submissions if s.recipient_id is None]
 
-    # Candidates / no role: only general, their own, or addressed to them
+    visible_sender_roles = _VISIBLE_ROLES[current_role]
+
+    # Build set of user_ids whose role is visible to the current user
+    visible_sender_ids = {
+        p.user_id for p in session_permissions
+        if p.role in visible_sender_roles
+    }
+
     return [
         s for s in submissions
-        if s.recipient_id is None
-        or s.user_id == current_user_id
-        or s.recipient_id == current_user_id
+        if s.recipient_id is None  # General feedback is visible to all
+        or s.user_id in visible_sender_ids  # Feedback from visible senders
     ]
 
 async def delete_feedback_by_session_id(

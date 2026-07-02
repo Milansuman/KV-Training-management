@@ -542,7 +542,7 @@ export default function SessionPage() {
         </TabsContent>
 
         <TabsContent value="feedback">
-          <FeedbackSection sessionId={sessionId} user={user} />
+          <FeedbackSection sessionId={sessionId} user={user} sessionUsers={sessionUsers} />
         </TabsContent>
       </Tabs>
     </div>
