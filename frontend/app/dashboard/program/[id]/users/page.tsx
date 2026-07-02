@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { Loader2, Trash, Plus } from "lucide-react";
 import {
@@ -155,6 +155,19 @@ export default function UsersPage() {
   const [selectedSessionIds, setSelectedSessionIds] = useState<Set<number>>(
     new Set(),
   );
+
+  // When sessionsWithRole loads, pre-populate selections for sessions the user already has a role in
+  useEffect(() => {
+    if (dialogOpen) {
+      setSelectedSessionIds(
+        new Set(
+          sessionsWithRole
+            .filter((s) => s.role)
+            .map((s) => s.id),
+        ),
+      );
+    }
+  }, [dialogOpen, sessionsWithRole]);
 
   function handleOpenManageSessions(member: ListProgramPermissionItem) {
     setSelectedUser(member);
