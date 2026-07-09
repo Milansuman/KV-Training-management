@@ -1,0 +1,25 @@
+{
+  "name": "kv-training-management",
+  "version": "1.0.0",
+  "description": "Project for training period",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "prepare": "husky"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Milansuman/KV-Training-management.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Milansuman/KV-Training-management/issues"
+  },
+  "homepage": "https://github.com/Milansuman/KV-Training-management#readme",
+  "devDependencies": {
+    "husky": "^9.1.7"
+  }
+}
